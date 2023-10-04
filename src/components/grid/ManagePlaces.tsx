@@ -53,7 +53,12 @@ export default function ManagePlaces(props: ManagePlacesProps) {
           Your Places
         </Heading> */}
 
-        <Heading mt="1em" fontSize={"1.5em"}>
+        <Heading
+          mt="1em"
+          fontSize={"1.5em"}
+          fontFamily="minecraft"
+          letterSpacing={"1px"}
+        >
           Updated Places ({updatedPlaces.length})
         </Heading>
         <HStack>
