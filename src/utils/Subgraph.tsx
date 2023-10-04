@@ -17,20 +17,7 @@ export async function getPlaces(
   }`
 
   return await client
-    .query(
-      q,
-      { timestamp },
-      {
-        fetchOptions: {
-          headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, OPTIONS, HEAD",
-            "Access-Control-Allow-Headers":
-              "Authorization, Origin, X-Requested-With, Content-Type, Accept",
-          },
-        },
-      },
-    )
+    .query(q, { timestamp })
     .toPromise()
     .then((result) => result.data.places)
     .catch((err) => {
@@ -78,6 +65,15 @@ export const useGetPlace = (): {
       url: process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT,
       exchanges: [cacheExchange, fetchExchange],
       requestPolicy: "network-only",
+      fetchOptions: {
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, POST, OPTIONS, HEAD",
+          "Access-Control-Allow-Headers":
+            "Authorization, Origin, X-Requested-With, Content-Type, Accept",
+        },
+        referrerPolicy: "no-referrer",
+      },
     })
     setClient(client)
   }, [])
