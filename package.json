@@ -22,6 +22,8 @@
     "browserify-zlib": "latest",
     "ethers": "^5",
     "framer-motion": "^8.1.4",
+    "graphql": "^16.8.1",
+    "graphql-request": "^6.1.0",
     "gray-matter": "^4.0.3",
     "http": "npm:http-browserify",
     "http-browserify": "latest",

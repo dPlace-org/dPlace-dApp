@@ -1,35 +1,33 @@
+import { gql, GraphQLClient as Client } from "graphql-request"
 import { useEffect, useState } from "react"
-import { cacheExchange, Client, createClient, fetchExchange } from "urql"
+
 import { Place } from "../components/grid/Grid"
 
 export async function getPlaces(
   client: Client,
   timestamp: Number,
-): Promise<Place[]> {
-  const q = `
-  query getPlaces($timestamp: Int!) {
-    places(where: {lastUpdated_gte: $timestamp}) {
-      x
-      y
-      color
-      lastUpdated
+): Promise<any> {
+  const q = gql`
+    query getPlaces($timestamp: Int!) {
+      places(where: { lastUpdated_gte: $timestamp }) {
+        x
+        y
+        color
+        lastUpdated
+      }
     }
-  }`
+  `
 
-  return await client
-    .query(q, { timestamp })
-    .toPromise()
-    .then((result) => result.data.places)
-    .catch((err) => {
-      return []
-    })
+  return await client.request(q, { timestamp }).then((data: any) => {
+    return data.places
+  })
 }
 
 export async function getPlace(
   client: Client,
   x: String,
   y: String,
-): Promise<Place> {
+): Promise<any> {
   const q = `
   query getPlace($x: String!, $y: String!) {
     places(where: { and: [{x: $x}, {y: $y}]}) {
@@ -42,13 +40,13 @@ export async function getPlace(
     }
   }`
 
-  return await client
-    .query(q, { x, y })
-    .toPromise()
-    .then((result) => result.data.places[0])
-    .catch((err) => {
-      return null
-    })
+  // return await client
+  //   .query(q, { x, y })
+  //   .toPromise()
+  //   .then((result) => result.data.places[0])
+  //   .catch((err) => {
+  //     return null
+  //   })
 }
 
 export const useGetPlace = (): {
@@ -61,20 +59,7 @@ export const useGetPlace = (): {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const client = createClient({
-      url: process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT,
-      exchanges: [cacheExchange, fetchExchange],
-      requestPolicy: "network-only",
-      fetchOptions: {
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, POST, OPTIONS, HEAD",
-          "Access-Control-Allow-Headers":
-            "Authorization, Origin, X-Requested-With, Content-Type, Accept",
-        },
-        referrerPolicy: "no-referrer",
-      },
-    })
+    const client = new Client(process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT)
     setClient(client)
   }, [])
 
@@ -107,11 +92,7 @@ export const useGetPlaces = (): {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const client = createClient({
-      url: process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT,
-      exchanges: [cacheExchange, fetchExchange],
-      requestPolicy: "network-only",
-    })
+    const client = new Client(process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT)
     setClient(client)
   }, [])
 
@@ -120,6 +101,7 @@ export const useGetPlaces = (): {
       try {
         setLoading(true)
         let places = await getPlaces(client, timestamp)
+        console.log(places)
         setLoading(false)
         return places
       } catch (err) {
