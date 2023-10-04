@@ -1,5 +1,5 @@
-import { trimAddress } from "@/utils/EthersRPC"
 import { useGetPlace } from "@/utils/Subgraph"
+import { trimAddress } from "@/utils/utils"
 import { Heading, HStack, Stack, Text } from "@chakra-ui/react"
 import { ethers } from "ethers"
 import { useEffect, useState } from "react"
