@@ -98,7 +98,6 @@ export default function Grid({ block }: { block: number }) {
         // Catch up grid from subgraph
         let timestamp = currentGridImageUrl.split("-")[1].split(".")[0]
         let places = await getPlaces(Number(timestamp))
-        console.log("places: ", places)
         setNewPlaces(places)
         initializeNewPlaces(places)
       }
