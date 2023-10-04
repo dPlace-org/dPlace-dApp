@@ -25,6 +25,6 @@
     },
     "incremental": true
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "pages/404.tsx", "next-i18next.config.mjs", "next-sitemap.js"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "src/pages/404.tsx"],
   "exclude": ["node_modules"]
 }
