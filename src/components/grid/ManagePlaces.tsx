@@ -59,7 +59,7 @@ export default function ManagePlaces(props: ManagePlacesProps) {
           fontFamily="minecraft"
           letterSpacing={"1px"}
         >
-          Updated Places ({updatedPlaces.length})
+          Places ({updatedPlaces.length})
         </Heading>
         <HStack>
           <Tooltip
