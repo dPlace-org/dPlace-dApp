@@ -2,9 +2,6 @@ import { HStack, Image } from "@chakra-ui/react"
 import { ConnectWallet, lightTheme } from "@thirdweb-dev/react"
 
 const Header = () => {
-  // const { address, web3Auth, login, logout, loggedIn } =
-  //   useContext(Web3AuthContext)
-
   return (
     <HStack
       bgColor="#FF4500"
