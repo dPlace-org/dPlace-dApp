@@ -22,7 +22,12 @@ export async function getPlaces(
       { timestamp },
       {
         fetchOptions: {
-          headers: { "Access-Control-Allow-Origin": "*" },
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS, HEAD",
+            "Access-Control-Allow-Headers":
+              "Authorization, Origin, X-Requested-With, Content-Type, Accept",
+          },
         },
       },
     )
