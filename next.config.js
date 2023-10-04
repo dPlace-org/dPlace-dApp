@@ -4,7 +4,8 @@ const nextConfig = {
   swcMinify: true,
   headers: [
     {
-      source: "/api/(.*)",
+      source:
+        "https://thegraph.com/hosted-service/subgraph/dplace-org/dplace-testnet(.*)",
       headers: [
         { key: "Access-Control-Allow-Credentials", value: "true" },
         { key: "Access-Control-Allow-Origin", value: "*" },
