@@ -17,7 +17,7 @@ export async function getPlaces(
   }`
 
   return await client
-    .query(q, { timestamp })
+    .query(q, { timestamp }, { fetchOptions: { mode: "no-cors" } })
     .toPromise()
     .then((result) => result.data.places)
     .catch((err) => {
