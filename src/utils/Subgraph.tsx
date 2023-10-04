@@ -17,7 +17,15 @@ export async function getPlaces(
   }`
 
   return await client
-    .query(q, { timestamp }, { fetchOptions: { mode: "no-cors" } })
+    .query(
+      q,
+      { timestamp },
+      {
+        fetchOptions: {
+          headers: { "Access-Control-Allow-Origin": "*" },
+        },
+      },
+    )
     .toPromise()
     .then((result) => result.data.places)
     .catch((err) => {
