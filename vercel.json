@@ -1,8 +1,0 @@
-{
-  "routes": [
-    {
-      "src": "/subgraph",
-      "dest": "${NEXT_PUBLIC_GRAPHQL_ENDPOINT}"
-    }
-  ]
-}

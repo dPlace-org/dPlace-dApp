@@ -5,8 +5,8 @@ const nextConfig = {
   async rewrites() {
     return [
       {
-        source: "/subgraph/:path*",
-        destination: `${process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT}/:path*`,
+        source: "/subgraph",
+        destination: `${process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT}`,
       },
     ]
   },
