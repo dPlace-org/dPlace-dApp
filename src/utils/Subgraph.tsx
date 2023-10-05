@@ -62,7 +62,7 @@ export const useGetPlace = (): {
 
   useEffect(() => {
     const client = createClient({
-      url: process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT,
+      url: "/subgraph",
       exchanges: [cacheExchange, fetchExchange],
       requestPolicy: "network-only",
     })
@@ -99,7 +99,7 @@ export const useGetPlaces = (): {
 
   useEffect(() => {
     const client = createClient({
-      url: process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT,
+      url: "/subgraph",
       exchanges: [cacheExchange, fetchExchange],
       requestPolicy: "network-only",
     })
