@@ -25,12 +25,11 @@ export default function SelectedPlace({
     let handler = async () => {
       let _place = await getPlace(place.x, place.y)
       if (_place) {
-        let nextHalving = Number(_place.lastUpdated) + 4 * 60 * 60 // 4 hours in
         setPrice(ethers.utils.formatEther(_place.price))
         setOwner(_place.owner)
         setColor(_place.color)
         setUpdateColor(_place.color)
-        setHalvingTime(nextHalving * 1000) // in milliseconds
+        setHalvingTime(calculateNextHalving(_place))
         return
       }
       setColor("lightgray")
@@ -40,6 +39,15 @@ export default function SelectedPlace({
     }
     if (place) handler()
   }, [place])
+
+  const calculateNextHalving = (place: Place) => {
+    let halvingsPassed =
+      (Date.now() - Number(place.lastUpdated) * 1000) / 1000 / 60 / 60 / 4
+    let wholeHalvingsPassed = Math.floor(halvingsPassed)
+    let nextHalvingIn =
+      (halvingsPassed - wholeHalvingsPassed) * 4 * 60 * 60 * 1000
+    return Date.now() + nextHalvingIn
+  }
 
   return (
     <Stack
@@ -96,7 +104,12 @@ export default function SelectedPlace({
             <Text fontWeight={"bold"} fontSize="sm" mt="-8px" color="gray">
               HALVING
             </Text>
-            {halvingTime && <Countdown date={halvingTime} />}
+            {halvingTime && (
+              <Countdown
+                onComplete={() => setHalvingTime(halvingTime + 14400000)} // reset clock
+                date={halvingTime}
+              />
+            )}
           </Stack>
         </HStack>
       </Stack>

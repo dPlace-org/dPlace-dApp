@@ -18,7 +18,6 @@ import { useGetPlaces } from "../../utils/Subgraph"
 import ManagePlaces from "./ManagePlaces"
 import SelectedPlace from "./SelectedPlace"
 
-import { DPlaceGrid__factory } from "@/types/index"
 import { useContract, useContractEvents, useSigner } from "@thirdweb-dev/react"
 import { ethers } from "ethers"
 import {
@@ -26,6 +25,7 @@ import {
   TransformComponent,
   TransformWrapper,
 } from "react-zoom-pan-pinch"
+import { DPlaceGrid__factory } from "types"
 
 export interface Place {
   x: number
@@ -121,16 +121,13 @@ export default function Grid({ block }: { block: number }) {
     if (signer) handler()
   }, [data])
 
-  // TODO: this function is not always being called. might have something to do with async calls
   function addNewPlace(place: Place) {
-    console.log("here")
     if (!canvas) return
 
     let newPlaceIndex = newPlaces.findIndex(
       (_place) => _place.x === place.x && _place.y === place.y,
     )
     if (newPlaces[newPlaceIndex]?.color === place.color) {
-      console.log("place already up to date")
       return
     }
     let x = place.x
@@ -143,12 +140,10 @@ export default function Grid({ block }: { block: number }) {
     }
 
     if (newPlaceIndex !== -1) {
-      console.log("updating" + place.color + " place")
       let _newPlaces = newPlaces
       _newPlaces[newPlaceIndex].color = place.color
       setNewPlaces([..._newPlaces])
     } else {
-      console.log("adding" + place.color + " place")
       let _newPlaces = newPlaces
       setNewPlaces([..._newPlaces, place])
     }

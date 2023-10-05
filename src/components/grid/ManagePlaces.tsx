@@ -1,4 +1,3 @@
-import { DPlaceGrid__factory } from "@/types/index"
 import {
   Button,
   Heading,
@@ -10,10 +9,11 @@ import {
   Text,
   Tooltip,
 } from "@chakra-ui/react"
-import { useContract, useContractRead, Web3Button } from "@thirdweb-dev/react"
+import { useContract, Web3Button } from "@thirdweb-dev/react"
 import { ethers } from "ethers"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { FaTimes } from "react-icons/fa"
+import { DPlaceGrid__factory } from "types"
 import { Place } from "./Grid"
 
 interface ManagePlacesProps {
@@ -26,7 +26,6 @@ interface ManagePlacesProps {
 
 export default function ManagePlaces(props: ManagePlacesProps) {
   let gridAddress = process.env.NEXT_PUBLIC_GRID_ADDRESS
-
   const {
     removePlace,
     updatedPlaces,
@@ -34,17 +33,32 @@ export default function ManagePlaces(props: ManagePlacesProps) {
     maxSpaces,
     confirmClaimPlaces,
   } = props
+  const [price, setPrice] = useState(0)
+  const priceString = ethers.utils.formatEther(price || 0)
+  const [priceLoading, setPriceLoading] = useState(false)
   const [totalPriceUSD, setTotalPriceUSD] = useState<string>("0.0")
   const { contract } = useContract(gridAddress, DPlaceGrid__factory.abi)
   let xs = updatedPlaces.map((place) => place.x)
   let ys = updatedPlaces.map((place) => place.y)
-  const {
-    data: price,
-    isLoading: isPriceLoading,
-    error: priceError,
-  } = useContractRead(contract, "calculatePlacesPrice", [xs, ys])
 
-  const priceString = ethers.utils.formatEther(price || 0)
+  useEffect(() => {
+    let handler = async () => {
+      if (xs.length === 0 && ys.length === 0) {
+        setPrice(0)
+        return
+      }
+      setPriceLoading(true)
+      console.log(xs, ys)
+      try {
+        let _price = await contract.call("calculatePlacesPrice", [xs, ys])
+        setPrice(Number(_price))
+      } catch (e) {
+        console.log(e)
+      }
+      setPriceLoading(false)
+    }
+    handler()
+  }, [updatedPlaces])
 
   return (
     <Stack bgColor="white" boxShadow="inset 0px 5px 5px rgb(0 0 0 / 28%)">
@@ -109,7 +123,7 @@ export default function ManagePlaces(props: ManagePlacesProps) {
 
         <Heading mt="1em" fontSize={"1.5em"}>
           Total:
-          {isPriceLoading ? (
+          {priceLoading ? (
             <Spinner />
           ) : (
             <>

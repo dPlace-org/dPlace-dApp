@@ -34,10 +34,10 @@ const App = ({ Component, pageProps }: AppProps) => {
         clientId="28678e20e8bd088ede38dafe03cfc808"
         supportedChains={[Base, BaseGoerli, Localhost]}
         activeChain={
-          process.env.NODE_ENV == "development"
-            ? "localhost"
-            : process.env.NEXT_PUBLIC_TESTNET
+          process.env.NEXT_PUBLIC_TESTNET
             ? "base-goerli"
+            : process.env.NODE_ENV == "development"
+            ? "localhost"
             : "base"
         }
       >

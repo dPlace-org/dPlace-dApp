@@ -53,6 +53,7 @@ export declare namespace DPlaceGrid {
 
 export interface DPlaceGridInterface extends utils.Interface {
   functions: {
+    "basePrice()": FunctionFragment;
     "calculatePlacePrice(uint256,uint256)": FunctionFragment;
     "calculatePlacesPrice(uint256[],uint256[])": FunctionFragment;
     "claimPlace(uint256,uint256,bytes)": FunctionFragment;
@@ -60,17 +61,22 @@ export interface DPlaceGridInterface extends utils.Interface {
     "getPlace(uint256,uint256)": FunctionFragment;
     "grid(uint256,uint256)": FunctionFragment;
     "gridSize()": FunctionFragment;
-    "initialize(uint256,uint256,uint256)": FunctionFragment;
+    "initialize(uint256,uint256,uint256,uint256)": FunctionFragment;
     "isDataValid(bytes)": FunctionFragment;
     "owner()": FunctionFragment;
-    "priceHalvingSeconds()": FunctionFragment;
+    "priceDecayInterval()": FunctionFragment;
+    "priceVelocity()": FunctionFragment;
     "renounceOwnership()": FunctionFragment;
-    "startingPrice()": FunctionFragment;
+    "setBasePrice(uint256)": FunctionFragment;
+    "setGridSize(uint256)": FunctionFragment;
+    "setPriceVelocity(uint256)": FunctionFragment;
+    "setpPriceDecayInterval(uint256)": FunctionFragment;
     "transferOwnership(address)": FunctionFragment;
   };
 
   getFunction(
     nameOrSignatureOrTopic:
+      | "basePrice"
       | "calculatePlacePrice"
       | "calculatePlacesPrice"
       | "claimPlace"
@@ -81,12 +87,17 @@ export interface DPlaceGridInterface extends utils.Interface {
       | "initialize"
       | "isDataValid"
       | "owner"
-      | "priceHalvingSeconds"
+      | "priceDecayInterval"
+      | "priceVelocity"
       | "renounceOwnership"
-      | "startingPrice"
+      | "setBasePrice"
+      | "setGridSize"
+      | "setPriceVelocity"
+      | "setpPriceDecayInterval"
       | "transferOwnership"
   ): FunctionFragment;
 
+  encodeFunctionData(functionFragment: "basePrice", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "calculatePlacePrice",
     values: [BigNumberish, BigNumberish]
@@ -114,7 +125,7 @@ export interface DPlaceGridInterface extends utils.Interface {
   encodeFunctionData(functionFragment: "gridSize", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "initialize",
-    values: [BigNumberish, BigNumberish, BigNumberish]
+    values: [BigNumberish, BigNumberish, BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "isDataValid",
@@ -122,7 +133,11 @@ export interface DPlaceGridInterface extends utils.Interface {
   ): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(
-    functionFragment: "priceHalvingSeconds",
+    functionFragment: "priceDecayInterval",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "priceVelocity",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -130,14 +145,27 @@ export interface DPlaceGridInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "startingPrice",
-    values?: undefined
+    functionFragment: "setBasePrice",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setGridSize",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setPriceVelocity",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setpPriceDecayInterval",
+    values: [BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "transferOwnership",
     values: [string]
   ): string;
 
+  decodeFunctionResult(functionFragment: "basePrice", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "calculatePlacePrice",
     data: BytesLike
@@ -161,7 +189,11 @@ export interface DPlaceGridInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "priceHalvingSeconds",
+    functionFragment: "priceDecayInterval",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "priceVelocity",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -169,7 +201,19 @@ export interface DPlaceGridInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "startingPrice",
+    functionFragment: "setBasePrice",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setGridSize",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setPriceVelocity",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setpPriceDecayInterval",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -248,6 +292,8 @@ export interface DPlaceGrid extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
+    basePrice(overrides?: CallOverrides): Promise<[BigNumber]>;
+
     calculatePlacePrice(
       x: BigNumberish,
       y: BigNumberish,
@@ -297,8 +343,9 @@ export interface DPlaceGrid extends BaseContract {
     gridSize(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     initialize(
-      _startingPrice: BigNumberish,
-      _priceHalvingSeconds: BigNumberish,
+      _basePrice: BigNumberish,
+      _priceDecayInterval: BigNumberish,
+      _priceVelocity: BigNumberish,
       _gridSize: BigNumberish,
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
@@ -307,19 +354,41 @@ export interface DPlaceGrid extends BaseContract {
 
     owner(overrides?: CallOverrides): Promise<[string]>;
 
-    priceHalvingSeconds(overrides?: CallOverrides): Promise<[BigNumber]>;
+    priceDecayInterval(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    priceVelocity(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     renounceOwnership(
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
 
-    startingPrice(overrides?: CallOverrides): Promise<[BigNumber]>;
+    setBasePrice(
+      _basePrice: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
+    setGridSize(
+      _gridSize: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
+    setPriceVelocity(
+      _priceVelocity: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
+    setpPriceDecayInterval(
+      _priceDecayInterval: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
 
     transferOwnership(
       newOwner: string,
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
   };
+
+  basePrice(overrides?: CallOverrides): Promise<BigNumber>;
 
   calculatePlacePrice(
     x: BigNumberish,
@@ -370,8 +439,9 @@ export interface DPlaceGrid extends BaseContract {
   gridSize(overrides?: CallOverrides): Promise<BigNumber>;
 
   initialize(
-    _startingPrice: BigNumberish,
-    _priceHalvingSeconds: BigNumberish,
+    _basePrice: BigNumberish,
+    _priceDecayInterval: BigNumberish,
+    _priceVelocity: BigNumberish,
     _gridSize: BigNumberish,
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
@@ -380,13 +450,33 @@ export interface DPlaceGrid extends BaseContract {
 
   owner(overrides?: CallOverrides): Promise<string>;
 
-  priceHalvingSeconds(overrides?: CallOverrides): Promise<BigNumber>;
+  priceDecayInterval(overrides?: CallOverrides): Promise<BigNumber>;
+
+  priceVelocity(overrides?: CallOverrides): Promise<BigNumber>;
 
   renounceOwnership(
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
-  startingPrice(overrides?: CallOverrides): Promise<BigNumber>;
+  setBasePrice(
+    _basePrice: BigNumberish,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
+  setGridSize(
+    _gridSize: BigNumberish,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
+  setPriceVelocity(
+    _priceVelocity: BigNumberish,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
+  setpPriceDecayInterval(
+    _priceDecayInterval: BigNumberish,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
 
   transferOwnership(
     newOwner: string,
@@ -394,6 +484,8 @@ export interface DPlaceGrid extends BaseContract {
   ): Promise<ContractTransaction>;
 
   callStatic: {
+    basePrice(overrides?: CallOverrides): Promise<BigNumber>;
+
     calculatePlacePrice(
       x: BigNumberish,
       y: BigNumberish,
@@ -443,8 +535,9 @@ export interface DPlaceGrid extends BaseContract {
     gridSize(overrides?: CallOverrides): Promise<BigNumber>;
 
     initialize(
-      _startingPrice: BigNumberish,
-      _priceHalvingSeconds: BigNumberish,
+      _basePrice: BigNumberish,
+      _priceDecayInterval: BigNumberish,
+      _priceVelocity: BigNumberish,
       _gridSize: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
@@ -453,11 +546,31 @@ export interface DPlaceGrid extends BaseContract {
 
     owner(overrides?: CallOverrides): Promise<string>;
 
-    priceHalvingSeconds(overrides?: CallOverrides): Promise<BigNumber>;
+    priceDecayInterval(overrides?: CallOverrides): Promise<BigNumber>;
+
+    priceVelocity(overrides?: CallOverrides): Promise<BigNumber>;
 
     renounceOwnership(overrides?: CallOverrides): Promise<void>;
 
-    startingPrice(overrides?: CallOverrides): Promise<BigNumber>;
+    setBasePrice(
+      _basePrice: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setGridSize(
+      _gridSize: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setPriceVelocity(
+      _priceVelocity: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setpPriceDecayInterval(
+      _priceDecayInterval: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     transferOwnership(
       newOwner: string,
@@ -495,6 +608,8 @@ export interface DPlaceGrid extends BaseContract {
   };
 
   estimateGas: {
+    basePrice(overrides?: CallOverrides): Promise<BigNumber>;
+
     calculatePlacePrice(
       x: BigNumberish,
       y: BigNumberish,
@@ -536,8 +651,9 @@ export interface DPlaceGrid extends BaseContract {
     gridSize(overrides?: CallOverrides): Promise<BigNumber>;
 
     initialize(
-      _startingPrice: BigNumberish,
-      _priceHalvingSeconds: BigNumberish,
+      _basePrice: BigNumberish,
+      _priceDecayInterval: BigNumberish,
+      _priceVelocity: BigNumberish,
       _gridSize: BigNumberish,
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
@@ -546,13 +662,33 @@ export interface DPlaceGrid extends BaseContract {
 
     owner(overrides?: CallOverrides): Promise<BigNumber>;
 
-    priceHalvingSeconds(overrides?: CallOverrides): Promise<BigNumber>;
+    priceDecayInterval(overrides?: CallOverrides): Promise<BigNumber>;
+
+    priceVelocity(overrides?: CallOverrides): Promise<BigNumber>;
 
     renounceOwnership(
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
 
-    startingPrice(overrides?: CallOverrides): Promise<BigNumber>;
+    setBasePrice(
+      _basePrice: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
+    setGridSize(
+      _gridSize: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
+    setPriceVelocity(
+      _priceVelocity: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
+    setpPriceDecayInterval(
+      _priceDecayInterval: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
 
     transferOwnership(
       newOwner: string,
@@ -561,6 +697,8 @@ export interface DPlaceGrid extends BaseContract {
   };
 
   populateTransaction: {
+    basePrice(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     calculatePlacePrice(
       x: BigNumberish,
       y: BigNumberish,
@@ -602,8 +740,9 @@ export interface DPlaceGrid extends BaseContract {
     gridSize(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     initialize(
-      _startingPrice: BigNumberish,
-      _priceHalvingSeconds: BigNumberish,
+      _basePrice: BigNumberish,
+      _priceDecayInterval: BigNumberish,
+      _priceVelocity: BigNumberish,
       _gridSize: BigNumberish,
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
@@ -615,15 +754,35 @@ export interface DPlaceGrid extends BaseContract {
 
     owner(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    priceHalvingSeconds(
+    priceDecayInterval(
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
+
+    priceVelocity(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     renounceOwnership(
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
-    startingPrice(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+    setBasePrice(
+      _basePrice: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
+    setGridSize(
+      _gridSize: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
+    setPriceVelocity(
+      _priceVelocity: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
+    setpPriceDecayInterval(
+      _priceDecayInterval: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
 
     transferOwnership(
       newOwner: string,
