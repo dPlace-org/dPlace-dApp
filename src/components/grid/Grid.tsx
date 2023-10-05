@@ -77,16 +77,6 @@ export default function Grid({ block }: { block: number }) {
     onOpen()
   }, [])
 
-  // useInterval(() => {
-  //   let handler = async () => {
-  //     let timestamp = currentGridImageUrl.split("-")[1].split(".")[0]
-  //     let places = await getPlaces(Number(timestamp))
-  //     setNewPlaces(places)
-  //     initializeNewPlaces(places)
-  //   }
-  //   handler()
-  // }, 1000)
-
   // draw canvas
   useEffect(() => {
     var gridImage = new Image()
@@ -99,7 +89,11 @@ export default function Grid({ block }: { block: number }) {
         let timestamp = currentGridImageUrl.split("-")[1].split(".")[0]
         let places = await getPlaces(Number(timestamp))
         setNewPlaces(places)
-        initializeNewPlaces(places)
+        for (let i = 0; i < places.length; i++) {
+          setTimeout(() => addNewPlace(places[i]), 1)
+        }
+
+        // initializeNewPlaces(places)
       }
       if (canvasRef.current && updateCanvasRef.current && size > 0) {
         let _canvas = canvasRef.current.getContext("2d")
@@ -113,20 +107,11 @@ export default function Grid({ block }: { block: number }) {
 
   useEffect(() => {
     if (data) {
-      console.log(
-        data.map((event) => {
-          return {
-            x: Number(event.data.x),
-            y: Number(event.data.y),
-            color: ethers.utils.parseBytes32String(event.data.data),
-          }
-        }),
-      )
       for (let i = 0; i < data.length; i++) {
         let x = Number(data[i].data.x)
         let y = Number(data[i].data.y)
         let color = ethers.utils.parseBytes32String(data[i].data.data)
-        addNewPlace({ x, y, color })
+        setTimeout(() => addNewPlace({ x, y, color }), 1)
       }
     }
     let handler = async () => {
@@ -136,20 +121,9 @@ export default function Grid({ block }: { block: number }) {
     if (signer) handler()
   }, [data])
 
-  function initializeNewPlaces(places: Place[]) {
-    if (!canvas || !places) return
-    for (let i = 0; i < places.length; i++) {
-      let x = places[i].x
-      let y = places[i].y
-      let color = places[i].color
-      if (color) {
-        canvas.fillStyle = color
-        canvas.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize)
-      }
-    }
-  }
-
+  // TODO: this function is not always being called. might have something to do with async calls
   function addNewPlace(place: Place) {
+    console.log("here")
     if (!canvas) return
 
     let newPlaceIndex = newPlaces.findIndex(
@@ -159,10 +133,10 @@ export default function Grid({ block }: { block: number }) {
       console.log("place already up to date")
       return
     }
-
     let x = place.x
     let y = place.y
     let color = place.color
+    // draw place on canvas
     if (color) {
       canvas.fillStyle = color
       canvas.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize)
