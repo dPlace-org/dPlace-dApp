@@ -9,6 +9,7 @@ import {
   Stack,
   Text,
   useDisclosure,
+  useToast,
 } from "@chakra-ui/react"
 import { useEffect, useRef, useState } from "react"
 import { HexColorPicker } from "react-colorful"
@@ -59,6 +60,8 @@ export default function Grid({ block }: { block: number }) {
   const [color, setColor] = useState("#FF4500")
   const { contract } = useContract(gridAddress, DPlaceGrid__factory.abi)
   const signer = useSigner()
+  const toast = useToast()
+
   const { data, isLoading, error } = useContractEvents(
     contract,
     "PlaceChanged",
@@ -150,6 +153,9 @@ export default function Grid({ block }: { block: number }) {
   }
 
   function updatePlace(x, y) {
+    if (!signer) {
+      // open modal
+    }
     let index = updatedPlaces.findIndex(
       (place) => place.x === x && place.y === y,
     )
@@ -172,6 +178,12 @@ export default function Grid({ block }: { block: number }) {
   }
 
   function confirmClaimPlaces() {
+    toast({
+      title: `Places Claimed!`,
+      description: `You have successfully claimed ${updatedPlaces.length} places!`,
+      status: "success",
+      isClosable: true,
+    })
     setUpdatedPlaces([])
   }
 

@@ -8,6 +8,7 @@ import {
   Stack,
   Text,
   Tooltip,
+  useToast,
 } from "@chakra-ui/react"
 import { useContract, Web3Button } from "@thirdweb-dev/react"
 import { ethers } from "ethers"
@@ -38,6 +39,8 @@ export default function ManagePlaces(props: ManagePlacesProps) {
   const [priceLoading, setPriceLoading] = useState(false)
   const [totalPriceUSD, setTotalPriceUSD] = useState<string>("0.0")
   const { contract } = useContract(gridAddress, DPlaceGrid__factory.abi)
+  const toast = useToast()
+
   let xs = updatedPlaces.map((place) => place.x)
   let ys = updatedPlaces.map((place) => place.y)
 
@@ -48,7 +51,6 @@ export default function ManagePlaces(props: ManagePlacesProps) {
         return
       }
       setPriceLoading(true)
-      console.log(xs, ys)
       try {
         let _price = await contract.call("calculatePlacesPrice", [xs, ys])
         setPrice(Number(_price))
@@ -143,13 +145,18 @@ export default function ManagePlaces(props: ManagePlacesProps) {
             let colors = updatedPlaces.map((place) =>
               ethers.utils.formatBytes32String(place.color),
             )
-
             try {
               await contract.call("claimPlaces", [xs, ys, colors], {
                 value: price || 0,
               })
-            } catch (e) {
-              console.log(e)
+            } catch (e: any) {
+              toast({
+                title: `Transaction Error!`,
+                description:
+                  "Something went wrong. make sure you have enough funds and try again!",
+                status: "error",
+                isClosable: true,
+              })
               return
             }
             confirmClaimPlaces()
