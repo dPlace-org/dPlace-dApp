@@ -8,7 +8,7 @@ export async function getPlaces(
 ): Promise<Place[]> {
   const q = `
   query getPlaces($timestamp: Int!) {
-    places(where: {lastUpdated_gte: $timestamp}) {
+    places(first: 1000, where: {lastUpdated_gte: $timestamp}) {
       x
       y
       color

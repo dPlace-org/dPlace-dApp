@@ -45,6 +45,7 @@
     "stream": "^0.0.2",
     "url": "latest",
     "urql": "^4.0.5",
+    "use-debounce": "^9.0.4",
     "zlib": "npm:browserify-zlib"
   },
   "devDependencies": {

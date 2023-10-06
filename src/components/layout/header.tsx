@@ -38,7 +38,6 @@ const Header = () => {
           subtitle: "Choose a login method to get started",
         }}
       />
-      ;
     </HStack>
   )
 }

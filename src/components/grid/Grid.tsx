@@ -13,7 +13,8 @@ import {
 } from "@chakra-ui/react"
 import { useEffect, useRef, useState } from "react"
 import { HexColorPicker } from "react-colorful"
-import { LuMousePointer2, LuPaintbrush2 } from "react-icons/lu"
+import { BsArrowsMove } from "react-icons/bs"
+import { LuPaintbrush2 } from "react-icons/lu"
 import { PiCrosshairBold, PiEraserBold } from "react-icons/pi"
 import { useGetPlaces } from "../../utils/Subgraph"
 import ManagePlaces from "./ManagePlaces"
@@ -39,7 +40,7 @@ export interface Place {
 
 export default function Grid({ block }: { block: number }) {
   let gridAddress = process.env.NEXT_PUBLIC_GRID_ADDRESS
-  const maxSpaces = 200
+  const maxSpaces = 100
   const pixelSize = 4
   const currentGridImageUrl = "/assets/images/grid-0.png"
 
@@ -58,6 +59,8 @@ export default function Grid({ block }: { block: number }) {
   const { getPlaces } = useGetPlaces()
   const [tool, setTool] = useState("select")
   const [color, setColor] = useState("#FF4500")
+  // const [panning, setPanning] = useState(false)
+  const [drawingPlaces, setDrawingPlaces] = useState(false)
   const { contract } = useContract(gridAddress, DPlaceGrid__factory.abi)
   const signer = useSigner()
   const toast = useToast()
@@ -137,6 +140,7 @@ export default function Grid({ block }: { block: number }) {
     let y = place.y
     let color = place.color
     // draw place on canvas
+
     if (color) {
       canvas.fillStyle = color
       canvas.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize)
@@ -188,6 +192,8 @@ export default function Grid({ block }: { block: number }) {
   }
 
   function removeUpdatedPlace(x: number, y: number) {
+    updateCanvas.clearRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize)
+
     let index = updatedPlaces.findIndex(
       (place) => place.x === x && place.y === y,
     )
@@ -197,7 +203,6 @@ export default function Grid({ block }: { block: number }) {
     setUpdatedPlaces([
       ...updatedPlaces.filter((place) => !(place.x === x && place.y === y)),
     ])
-    updateCanvas.clearRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize)
   }
 
   function clearUpdatedPlaces() {
@@ -228,6 +233,30 @@ export default function Grid({ block }: { block: number }) {
     }
   }
 
+  function drawPlaces(event) {
+    if (!drawingPlaces) return
+    const bounding = updateCanvas.canvas.getBoundingClientRect()
+    let scale = transformComponentRef.current.instance.transformState.scale
+    const x = Math.floor((event.clientX - bounding.left) / scale / pixelSize)
+    const y = Math.floor((event.clientY - bounding.top) / scale / pixelSize)
+    if (tool === "update") {
+      updatePlace(x, y)
+    } else if (tool === "remove") {
+      removeUpdatedPlace(x, y)
+    }
+    // console.log(x, y)
+  }
+
+  function enableDrawPlaces(event) {
+    if (tool == "select") return
+    setDrawingPlaces(true)
+  }
+
+  function disableDrawPlaces(event) {
+    if (tool == "select") return
+    setDrawingPlaces(false)
+  }
+
   function centerCanvas() {
     if (transformComponentRef.current) {
       const { zoomToElement, setTransform, resetTransform, centerView } =
@@ -253,6 +282,9 @@ export default function Grid({ block }: { block: number }) {
           centerOnInit={true}
           panning={{ velocityDisabled: true }}
           wheel={{ step: 0.001, smoothStep: 0.005 }}
+          disabled={tool === "update" || tool === "remove"}
+          // onPanning={() => setPanning(true)}
+          // onPanningStop={() => setTimeout(() => setPanning(false), 1)}
         >
           <TransformComponent>
             <canvas
@@ -282,6 +314,14 @@ export default function Grid({ block }: { block: number }) {
                 zIndex: 100000,
               }}
               onClick={clickPlace}
+              onMouseMoveCapture={drawPlaces}
+              onTouchMoveCapture={drawPlaces}
+              onMouseDown={enableDrawPlaces}
+              onTouchStart={enableDrawPlaces}
+              onMouseLeave={disableDrawPlaces}
+              onMouseUp={disableDrawPlaces}
+              onTouchEnd={disableDrawPlaces}
+              onTouchCancel={disableDrawPlaces}
             />
           </TransformComponent>
         </TransformWrapper>
@@ -317,7 +357,7 @@ export default function Grid({ block }: { block: number }) {
                   />
                   <IconButton
                     aria-label="select"
-                    icon={<Icon as={LuMousePointer2} />}
+                    icon={<Icon as={BsArrowsMove} />}
                     bgColor={tool === "select" ? "#FF4500" : ""}
                     color={tool === "select" ? "white" : ""}
                     onClick={() => setTool("select")}

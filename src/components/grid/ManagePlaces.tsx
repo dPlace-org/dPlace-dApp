@@ -12,9 +12,10 @@ import {
 } from "@chakra-ui/react"
 import { useContract, Web3Button } from "@thirdweb-dev/react"
 import { ethers } from "ethers"
-import { useEffect, useState } from "react"
+import { useMemo, useState } from "react"
 import { FaTimes } from "react-icons/fa"
 import { DPlaceGrid__factory } from "types"
+import { useDebouncedCallback } from "use-debounce"
 import { Place } from "./Grid"
 
 interface ManagePlacesProps {
@@ -34,8 +35,8 @@ export default function ManagePlaces(props: ManagePlacesProps) {
     maxSpaces,
     confirmClaimPlaces,
   } = props
-  const [price, setPrice] = useState(0)
-  const priceString = ethers.utils.formatEther(price || 0)
+  const [priceBigNumber, setPriceBigNumber] = useState<ethers.BigNumber>(null)
+  const [price, setPrice] = useState("0.0")
   const [priceLoading, setPriceLoading] = useState(false)
   const [totalPriceUSD, setTotalPriceUSD] = useState<string>("0.0")
   const { contract } = useContract(gridAddress, DPlaceGrid__factory.abi)
@@ -44,20 +45,25 @@ export default function ManagePlaces(props: ManagePlacesProps) {
   let xs = updatedPlaces.map((place) => place.x)
   let ys = updatedPlaces.map((place) => place.y)
 
-  useEffect(() => {
+  let getPrice = useDebouncedCallback(async (xs: number[], ys: number[]) => {
+    setPriceLoading(true)
+    try {
+      let _price = await contract.call("calculatePlacesPrice", [xs, ys])
+      setPrice(ethers.utils.formatEther(_price))
+      setPriceBigNumber(_price)
+    } catch (e) {
+      console.log(e)
+    }
+    setPriceLoading(false)
+  }, 100)
+
+  useMemo(() => {
     let handler = async () => {
       if (xs.length === 0 && ys.length === 0) {
-        setPrice(0)
+        setPrice("0.0")
         return
       }
-      setPriceLoading(true)
-      try {
-        let _price = await contract.call("calculatePlacesPrice", [xs, ys])
-        setPrice(Number(_price))
-      } catch (e) {
-        console.log(e)
-      }
-      setPriceLoading(false)
+      await getPrice(xs, ys)
     }
     handler()
   }, [updatedPlaces])
@@ -129,7 +135,7 @@ export default function ManagePlaces(props: ManagePlacesProps) {
             <Spinner />
           ) : (
             <>
-              <span style={{ fontWeight: "initial" }}>Ξ{priceString}</span>
+              <span style={{ fontWeight: "initial" }}>Ξ{price}</span>
               <span style={{ fontSize: "15px", color: "gray" }}>
                 {" "}
                 (${totalPriceUSD})
@@ -142,12 +148,13 @@ export default function ManagePlaces(props: ManagePlacesProps) {
           contractAbi={DPlaceGrid__factory.abi}
           isDisabled={updatedPlaces.length === 0}
           action={async (contract) => {
+            if (!priceBigNumber) return
             let colors = updatedPlaces.map((place) =>
               ethers.utils.formatBytes32String(place.color),
             )
             try {
               await contract.call("claimPlaces", [xs, ys, colors], {
-                value: price || 0,
+                value: priceBigNumber || 0,
               })
             } catch (e: any) {
               toast({
