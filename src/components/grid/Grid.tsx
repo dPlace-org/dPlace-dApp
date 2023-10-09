@@ -407,7 +407,7 @@ export default function Grid({ block }: { block: number }) {
   )
 
   return (
-    <Stack>
+    <Stack overflowY={"hidden"}>
       <Stack overflow={"hidden"} maxH={"calc(100vh - 88px)"} mt="88px">
         <TransformWrapper
           ref={transformComponentRef}
