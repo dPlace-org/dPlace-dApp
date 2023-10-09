@@ -1,3 +1,4 @@
+import { useCalculatePriceUSD } from "@/utils/Price"
 import {
   Button,
   Heading,
@@ -38,8 +39,9 @@ export default function ManagePlaces(props: ManagePlacesProps) {
   const [priceBigNumber, setPriceBigNumber] = useState<ethers.BigNumber>(null)
   const [price, setPrice] = useState("0.0")
   const [priceLoading, setPriceLoading] = useState(false)
-  const [totalPriceUSD, setTotalPriceUSD] = useState<string>("0.0")
   const { contract } = useContract(gridAddress, DPlaceGrid__factory.abi)
+  const { usdPrice } = useCalculatePriceUSD({ ethAmount: price })
+
   const toast = useToast()
 
   let xs = updatedPlaces.map((place) => place.x)
@@ -76,12 +78,12 @@ export default function ManagePlaces(props: ManagePlacesProps) {
         </Heading> */}
 
         <Heading
-          mt="1em"
+          mt="10px"
           fontSize={"1.5em"}
           fontFamily="minecraft"
           letterSpacing={"1px"}
         >
-          Places ({updatedPlaces.length})
+          Updated Places ({updatedPlaces.length})
         </Heading>
         <HStack>
           <Tooltip
@@ -92,9 +94,11 @@ export default function ManagePlaces(props: ManagePlacesProps) {
               <span style={{ fontWeight: "bold" }}>Max:</span> {maxSpaces}
             </Text>
           </Tooltip>
-          <Button size="sm" onClick={clearUpdatedPlaces}>
-            Clear
-          </Button>
+          {updatedPlaces.length > 0 && (
+            <Button size="sm" onClick={clearUpdatedPlaces}>
+              Clear
+            </Button>
+          )}
         </HStack>
         <HStack
           whiteSpace={"nowrap"}
@@ -138,7 +142,7 @@ export default function ManagePlaces(props: ManagePlacesProps) {
               <span style={{ fontWeight: "initial" }}>Ξ{price}</span>
               <span style={{ fontSize: "15px", color: "gray" }}>
                 {" "}
-                (${totalPriceUSD})
+                (${usdPrice})
               </span>
             </>
           )}

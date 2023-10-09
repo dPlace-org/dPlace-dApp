@@ -13,6 +13,7 @@ const Header = () => {
       justify="space-between"
       align="center"
       w="100%"
+      maxW="100vw"
     >
       <HStack>
         <Image src="/assets/images/icon.svg" alt="icon" w="3.5em" />

@@ -2,13 +2,16 @@ import { useEffect, useState } from "react"
 import { cacheExchange, Client, createClient, fetchExchange } from "urql"
 import { Place } from "../components/grid/Grid"
 
+const PAGESIZE = 100
+
 export async function getPlaces(
   client: Client,
-  timestamp: Number,
+  timestamp: number,
+  page: number,
 ): Promise<Place[]> {
   const q = `
-  query getPlaces($timestamp: Int!) {
-    places(first: 1000, where: {lastUpdated_gte: $timestamp}) {
+  query getPlaces($timestamp: Int!, $first: Int!, $skip: Int!) {
+    places(first: $first, skip: $skip, where: {lastUpdated_gte: $timestamp}) {
       x
       y
       color
@@ -16,8 +19,11 @@ export async function getPlaces(
     }
   }`
 
+  let first = PAGESIZE
+  let skip = page * PAGESIZE
+
   return await client
-    .query(q, { timestamp })
+    .query(q, { timestamp, first, skip })
     .toPromise()
     .then((result) => result.data.places)
     .catch((err) => {
@@ -54,10 +60,12 @@ export async function getPlace(
 export const useGetPlace = (): {
   getPlace: (x: Number, y: Number) => Promise<Place>
   loading: boolean
+  initialized: boolean
   error: string
 } => {
   const [client, setClient] = useState<Client | null>(null)
   const [loading, setLoading] = useState<boolean>(false)
+  const [initialized, setInitialized] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -67,6 +75,7 @@ export const useGetPlace = (): {
       requestPolicy: "network-only",
     })
     setClient(client)
+    setInitialized(true)
   }, [])
 
   const queryPlace = async (x: Number, y: Number) => {
@@ -85,7 +94,7 @@ export const useGetPlace = (): {
     return null
   }
 
-  return { getPlace: queryPlace, loading, error }
+  return { getPlace: queryPlace, loading, initialized, error }
 }
 
 export const useGetPlaces = (): {
@@ -106,11 +115,21 @@ export const useGetPlaces = (): {
     setClient(client)
   }, [])
 
-  const queryPlaces = async (timestamp: Number) => {
+  const queryPlaces = async (timestamp: number) => {
     if (client) {
       try {
+        let done = false
+        let places = []
+        let page = 0
         setLoading(true)
-        let places = await getPlaces(client, timestamp)
+        while (!done) {
+          let _places = await getPlaces(client, timestamp, page)
+          places = [...places, ..._places]
+          if (_places.length < PAGESIZE) {
+            done = true
+          }
+          page++
+        }
         setLoading(false)
         return places
       } catch (err) {

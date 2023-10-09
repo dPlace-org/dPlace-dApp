@@ -1,19 +1,27 @@
 import {
+  Center,
   Drawer,
   DrawerBody,
   DrawerContent,
   DrawerOverlay,
+  Editable,
+  EditableInput,
+  EditablePreview,
   HStack,
   Icon,
   IconButton,
+  Spinner,
   Stack,
-  Text,
+  useBreakpointValue,
   useDisclosure,
   useToast,
 } from "@chakra-ui/react"
 import { useEffect, useRef, useState } from "react"
 import { HexColorPicker } from "react-colorful"
+import { BiSave } from "react-icons/bi"
 import { BsArrowsMove } from "react-icons/bs"
+import { GiHamburgerMenu } from "react-icons/gi"
+import { ImBin } from "react-icons/im"
 import { LuPaintbrush2 } from "react-icons/lu"
 import { PiCrosshairBold, PiEraserBold } from "react-icons/pi"
 import { useGetPlaces } from "../../utils/Subgraph"
@@ -22,6 +30,8 @@ import SelectedPlace from "./SelectedPlace"
 
 import { useContract, useContractEvents, useSigner } from "@thirdweb-dev/react"
 import { ethers } from "ethers"
+import { FaPalette } from "react-icons/fa"
+import { LiaHandPointer } from "react-icons/lia"
 import {
   ReactZoomPanPinchRef,
   TransformComponent,
@@ -56,12 +66,14 @@ export default function Grid({ block }: { block: number }) {
   const [updatedPlaces, setUpdatedPlaces] = useState<Place[]>([])
   const [selectedPlace, setSelectedPlace] = useState<Place>()
   const [currentBlock, setCurrentBlock] = useState<number>(block)
-  const { getPlaces } = useGetPlaces()
-  const [tool, setTool] = useState("select")
+  const { getPlaces, loading } = useGetPlaces()
+  const [tool, setTool] = useState("move")
+  const [showColorPicker, setShowColorPicker] = useState(false)
+  const [transformDisabled, setTransformDisabled] = useState(false)
   const [color, setColor] = useState("#FF4500")
-  // const [panning, setPanning] = useState(false)
   const [drawingPlaces, setDrawingPlaces] = useState(false)
   const { contract } = useContract(gridAddress, DPlaceGrid__factory.abi)
+  const isMobile = useBreakpointValue({ base: true, md: false })
   const signer = useSigner()
   const toast = useToast()
 
@@ -126,6 +138,17 @@ export default function Grid({ block }: { block: number }) {
     }
     if (signer) handler()
   }, [data])
+
+  useEffect(() => {
+    if (tool !== "select") {
+      setSelectedPlace(undefined)
+    }
+    if (tool == "move") {
+      setTransformDisabled(false)
+    } else {
+      setTransformDisabled(true)
+    }
+  }, [tool])
 
   function addNewPlace(place: Place) {
     if (!canvas) return
@@ -237,42 +260,155 @@ export default function Grid({ block }: { block: number }) {
     if (!drawingPlaces) return
     const bounding = updateCanvas.canvas.getBoundingClientRect()
     let scale = transformComponentRef.current.instance.transformState.scale
-    const x = Math.floor((event.clientX - bounding.left) / scale / pixelSize)
-    const y = Math.floor((event.clientY - bounding.top) / scale / pixelSize)
+    let x
+    let y
+    if (event.touches) {
+      x = Math.floor(
+        (event.touches[0].clientX - bounding.left) / scale / pixelSize,
+      )
+      y = Math.floor(
+        (event.touches[0].clientY - bounding.top) / scale / pixelSize,
+      )
+    } else {
+      x = Math.floor((event.clientX - bounding.left) / scale / pixelSize)
+      y = Math.floor((event.clientY - bounding.top) / scale / pixelSize)
+    }
     if (tool === "update") {
       updatePlace(x, y)
     } else if (tool === "remove") {
       removeUpdatedPlace(x, y)
     }
-    // console.log(x, y)
   }
 
   function enableDrawPlaces(event) {
-    if (tool == "select") return
+    if (tool == "move") return
     setDrawingPlaces(true)
   }
 
   function disableDrawPlaces(event) {
-    if (tool == "select") return
+    if (tool == "move") return
     setDrawingPlaces(false)
+  }
+
+  function toggleColorPicker() {
+    setShowColorPicker(!showColorPicker)
   }
 
   function centerCanvas() {
     if (transformComponentRef.current) {
-      const { zoomToElement, setTransform, resetTransform, centerView } =
-        transformComponentRef.current
+      let prevTransformDisabled = transformDisabled
+      setTransformDisabled(false)
+      const { setTransform } = transformComponentRef.current
       let scale = 15
-      setTransform(
-        (((size - pixelSize * scale) * -1) / 2) * scale + 500,
-        (((size - pixelSize * scale) * -1) / 2) * scale,
-        scale,
-      )
+      setTimeout(() => {
+        let offset = 500
+        if (isMobile) offset = -100
+        setTransform(
+          (((size - pixelSize * scale) * -1) / 2) * scale + offset,
+          (((size - pixelSize * scale) * -1) / 2) * scale,
+          scale,
+        )
+        setTransformDisabled(prevTransformDisabled)
+      }, 100)
     }
   }
 
+  let controls = (
+    <HStack
+      mt="1em"
+      pos="absolute"
+      left={isOpen ? "21em" : "1em"}
+      top={isOpen ? "initial" : "88px"}
+      alignItems="flex-start"
+      gap="1em"
+    >
+      <Stack>
+        <IconButton
+          aria-label="close"
+          icon={<Icon as={GiHamburgerMenu} />}
+          onClick={isOpen ? onClose : onOpen}
+          _hover={{ backgroundColor: "#FF4500", color: "white" }}
+        />
+        <IconButton
+          aria-label="center"
+          icon={<Icon as={PiCrosshairBold} />}
+          onClick={centerCanvas}
+          _hover={{ backgroundColor: "#FF4500", color: "white" }}
+        />
+        <IconButton
+          aria-label="select"
+          icon={<Icon as={LiaHandPointer} />}
+          bgColor={tool === "select" ? "#FF4500" : ""}
+          color={tool === "select" ? "white" : ""}
+          onClick={() => setTool("select")}
+          _hover={{ backgroundColor: "#FF4500", color: "white" }}
+        />
+        <IconButton
+          aria-label="move"
+          icon={<Icon as={BsArrowsMove} />}
+          bgColor={tool === "move" ? "#FF4500" : ""}
+          color={tool === "move" ? "white" : ""}
+          onClick={() => setTool("move")}
+          _hover={{ backgroundColor: "#FF4500", color: "white" }}
+        />
+        <IconButton
+          aria-label="update"
+          icon={<Icon as={LuPaintbrush2} />}
+          bgColor={tool === "update" ? color : ""}
+          color={tool === "update" ? "white" : ""}
+          onClick={() => setTool("update")}
+          _hover={{ backgroundColor: "#FF4500", color: "white" }}
+        />
+        {(tool == "update" || tool == "remove") && (
+          <>
+            <IconButton
+              aria-label="show-color-picker"
+              icon={<Icon as={FaPalette} />}
+              onClick={toggleColorPicker}
+              _hover={{ backgroundColor: "#FF4500", color: "white" }}
+            />
+            <IconButton
+              aria-label="remove"
+              icon={<Icon as={PiEraserBold} />}
+              bgColor={tool === "remove" ? "#FF4500" : ""}
+              color={tool === "remove" ? "white" : ""}
+              onClick={() => setTool("remove")}
+              _hover={{ backgroundColor: "#FF4500", color: "white" }}
+            />
+          </>
+        )}
+        {updatedPlaces.length > 0 && (
+          <IconButton
+            aria-label="clear"
+            icon={<Icon as={ImBin} />}
+            onClick={clearUpdatedPlaces}
+            _hover={{ backgroundColor: "#FF4500", color: "white" }}
+          />
+        )}
+        {!isOpen && updatedPlaces.length > 0 && (
+          <IconButton
+            aria-label="save"
+            icon={<Icon as={BiSave} />}
+            onClick={onOpen}
+            _hover={{ backgroundColor: "#FF4500", color: "white" }}
+          />
+        )}
+      </Stack>
+      {(tool == "update" || tool == "remove") && showColorPicker && (
+        <Stack>
+          <HexColorPicker color={color} onChange={setColor} />
+          <Editable value={color}>
+            <EditablePreview />
+            <EditableInput onChange={(e) => setColor(e.target.value)} />
+          </Editable>
+        </Stack>
+      )}
+    </HStack>
+  )
+
   return (
     <Stack>
-      <div>
+      <Stack overflow={"hidden"} maxH="100vh">
         <TransformWrapper
           ref={transformComponentRef}
           limitToBounds={false}
@@ -282,9 +418,7 @@ export default function Grid({ block }: { block: number }) {
           centerOnInit={true}
           panning={{ velocityDisabled: true }}
           wheel={{ step: 0.001, smoothStep: 0.005 }}
-          disabled={tool === "update" || tool === "remove"}
-          // onPanning={() => setPanning(true)}
-          // onPanningStop={() => setTimeout(() => setPanning(false), 1)}
+          disabled={transformDisabled}
         >
           <TransformComponent>
             <canvas
@@ -296,7 +430,7 @@ export default function Grid({ block }: { block: number }) {
                 width: `${size}px`,
                 height: `${size}px`,
                 imageRendering: "pixelated",
-                cursor: tool === "select" ? "pointer" : "crosshair",
+                cursor: tool === "move" ? "pointer" : "crosshair",
                 position: "absolute",
                 zIndex: 10000,
               }}
@@ -309,7 +443,7 @@ export default function Grid({ block }: { block: number }) {
                 width: `${size}px`,
                 height: `${size}px`,
                 imageRendering: "pixelated",
-                cursor: tool === "select" ? "pointer" : "crosshair",
+                cursor: tool === "move" ? "pointer" : "crosshair",
                 position: "relative",
                 zIndex: 100000,
               }}
@@ -325,7 +459,18 @@ export default function Grid({ block }: { block: number }) {
             />
           </TransformComponent>
         </TransformWrapper>
-      </div>
+      </Stack>
+      {loading && (
+        <Center
+          backgroundColor="#00000012"
+          pos="absolute"
+          w={"100vw"}
+          h={"100vh"}
+        >
+          <Spinner />
+        </Center>
+      )}
+      {!isOpen && controls}
       <Drawer
         placement={"left"}
         onClose={onClose}
@@ -341,53 +486,7 @@ export default function Grid({ block }: { block: number }) {
               h="100%"
               justifyContent={"space-between"}
             >
-              <HStack
-                mt="1em"
-                pos="absolute"
-                left="21em"
-                alignItems="flex-start"
-                gap="1em"
-              >
-                <Stack>
-                  <IconButton
-                    aria-label="center"
-                    icon={<Icon as={PiCrosshairBold} />}
-                    onClick={centerCanvas}
-                    _hover={{ backgroundColor: "#FF4500", color: "white" }}
-                  />
-                  <IconButton
-                    aria-label="select"
-                    icon={<Icon as={BsArrowsMove} />}
-                    bgColor={tool === "select" ? "#FF4500" : ""}
-                    color={tool === "select" ? "white" : ""}
-                    onClick={() => setTool("select")}
-                    _hover={{ backgroundColor: "#FF4500", color: "white" }}
-                  />
-                  <IconButton
-                    aria-label="update"
-                    icon={<Icon as={LuPaintbrush2} />}
-                    bgColor={tool === "update" ? color : ""}
-                    color={tool === "update" ? "white" : ""}
-                    onClick={() => setTool("update")}
-                    _hover={{ backgroundColor: "#FF4500", color: "white" }}
-                  />
-                  <IconButton
-                    aria-label="remove"
-                    icon={<Icon as={PiEraserBold} />}
-                    bgColor={tool === "remove" ? "#FF4500" : ""}
-                    color={tool === "remove" ? "white" : ""}
-                    onClick={() => setTool("remove")}
-                    _hover={{ backgroundColor: "#FF4500", color: "white" }}
-                  />
-                </Stack>
-                {tool === "update" && (
-                  <Stack>
-                    <HexColorPicker color={color} onChange={setColor} />
-                    <Text>{color}</Text>
-                  </Stack>
-                )}
-              </HStack>
-              <SelectedPlace place={selectedPlace} setUpdateColor={setColor} />
+              {controls}
               <ManagePlaces
                 confirmClaimPlaces={confirmClaimPlaces}
                 removePlace={removeUpdatedPlace}
@@ -395,6 +494,12 @@ export default function Grid({ block }: { block: number }) {
                 updatedPlaces={updatedPlaces}
                 maxSpaces={maxSpaces}
               />
+              {!isMobile && selectedPlace && (
+                <SelectedPlace
+                  place={selectedPlace}
+                  setUpdateColor={setColor}
+                />
+              )}
             </Stack>
           </DrawerBody>
         </DrawerContent>
