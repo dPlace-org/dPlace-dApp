@@ -5,6 +5,7 @@ const styles = {
     body: {
       // bg: "linear-gradient(#131313 0,#131313 100%)",
       bg: "#ecebe7",
+      overflow: "hidden",
     },
   }),
 }

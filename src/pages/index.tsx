@@ -20,7 +20,7 @@ const IndexPage = () => {
       title="Home"
       description="Discover a starter kit which includes Next.js, Chakra-UI, Framer-Motion in Typescript. You have few components, Internationalization, SEO and more in this template ! Enjoy coding."
     >
-      <Stack spacing={4} w="100%">
+      <Stack spacing={4} w="100%" overflowY={"unset"}>
         <Grid block={block} />
       </Stack>
     </PageLayout>

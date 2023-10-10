@@ -52,7 +52,7 @@ export default function SelectedPlace({
 
   return (
     <Stack
-      minH="15em"
+      mt="1em"
       placeContent={"center"}
       bgColor="white"
       boxShadow="0 10px 10px rgb(0 0 0 / 0.2)"

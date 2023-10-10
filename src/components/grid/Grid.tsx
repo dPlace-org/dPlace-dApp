@@ -92,7 +92,7 @@ export default function Grid({ block }: { block: number }) {
 
   // load grid image and set size
   useEffect(() => {
-    onOpen()
+    if (!isMobile) onOpen()
   }, [])
 
   // draw canvas
@@ -235,6 +235,7 @@ export default function Grid({ block }: { block: number }) {
   }
 
   function selectPlace(x, y) {
+    if (!isOpen) onOpen()
     setSelectedPlace({ x, y })
   }
 
@@ -326,7 +327,16 @@ export default function Grid({ block }: { block: number }) {
         <IconButton
           aria-label="close"
           icon={<Icon as={GiHamburgerMenu} />}
-          onClick={isOpen ? onClose : onOpen}
+          onClick={
+            isOpen
+              ? () => {
+                  setSelectedPlace(undefined)
+                  onClose()
+                }
+              : () => {
+                  onOpen()
+                }
+          }
           _hover={{ backgroundColor: "#FF4500", color: "white" }}
         />
         <IconButton
@@ -494,7 +504,7 @@ export default function Grid({ block }: { block: number }) {
                 updatedPlaces={updatedPlaces}
                 maxSpaces={maxSpaces}
               />
-              {!isMobile && selectedPlace && (
+              {selectedPlace && (
                 <SelectedPlace
                   place={selectedPlace}
                   setUpdateColor={setColor}
