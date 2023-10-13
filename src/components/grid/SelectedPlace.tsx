@@ -46,7 +46,7 @@ export default function SelectedPlace({
       (Date.now() - Number(place.lastUpdated) * 1000) / 1000 / 60 / 60 / 4
     let wholeHalvingsPassed = Math.floor(halvingsPassed)
     let nextHalvingIn =
-      (halvingsPassed - wholeHalvingsPassed) * 4 * 60 * 60 * 1000
+      (1 - (halvingsPassed - wholeHalvingsPassed)) * 4 * 60 * 60 * 1000
     return Date.now() + nextHalvingIn
   }
 
