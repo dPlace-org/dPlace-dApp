@@ -11,7 +11,7 @@ import {
   Tooltip,
   useToast,
 } from "@chakra-ui/react"
-import { useContract, Web3Button } from "@thirdweb-dev/react"
+import { useContract, useSigner, Web3Button } from "@thirdweb-dev/react"
 import { ethers } from "ethers"
 import { useMemo, useState } from "react"
 import { FaTimes } from "react-icons/fa"
@@ -36,10 +36,13 @@ export default function ManagePlaces(props: ManagePlacesProps) {
     maxSpaces,
     confirmClaimPlaces,
   } = props
-  const [priceBigNumber, setPriceBigNumber] = useState<ethers.BigNumber>(null)
+  const [priceBigNumber, setPriceBigNumber] = useState<ethers.BigNumber>(
+    ethers.BigNumber.from(0),
+  )
   const [price, setPrice] = useState("0.0")
   const [priceLoading, setPriceLoading] = useState(false)
   const { contract } = useContract(gridAddress, DPlaceGrid__factory.abi)
+  const signer = useSigner()
   const { usdPrice } = useCalculatePriceUSD({ ethAmount: price })
 
   const toast = useToast()
@@ -151,16 +154,29 @@ export default function ManagePlaces(props: ManagePlacesProps) {
           contractAddress={gridAddress}
           contractAbi={DPlaceGrid__factory.abi}
           isDisabled={updatedPlaces.length === 0}
-          action={async (contract) => {
+          action={async (_contract) => {
             if (!priceBigNumber) return
             let colors = updatedPlaces.map((place) =>
               ethers.utils.formatBytes32String(place.color),
             )
             try {
-              await contract.call("claimPlaces", [xs, ys, colors], {
-                value: priceBigNumber || 0,
+              // await (
+              //   await signer.sendTransaction({
+              //     to: ethers.constants.AddressZero,
+              //     data: "0x",
+              //     value: 0,
+              //   })
+              // ).wait()
+              // let tx = contract.prepare("claimPlaces", [xs, ys, colors], {
+              //   value: priceBigNumber,
+              // })
+              // console.log((await tx.estimateGasCost()).ether)
+              await _contract.call("claimPlaces", [xs, ys, colors], {
+                value: priceBigNumber,
+                // gasLimit: limit,
               })
             } catch (e: any) {
+              console.log(e)
               toast({
                 title: `Transaction Error!`,
                 description:

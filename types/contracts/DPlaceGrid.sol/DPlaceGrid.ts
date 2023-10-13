@@ -25,7 +25,7 @@ import type {
   TypedEvent,
   TypedListener,
   OnEvent,
-} from "../common";
+} from "../../common";
 
 export declare namespace DPlaceGrid {
   export type PlaceStruct = {
@@ -53,7 +53,6 @@ export declare namespace DPlaceGrid {
 
 export interface DPlaceGridInterface extends utils.Interface {
   functions: {
-    "_claimPlace(uint256,uint256,bytes)": FunctionFragment;
     "basePrice()": FunctionFragment;
     "calculatePlacePrice(uint256,uint256)": FunctionFragment;
     "calculatePlacesPrice(uint256[],uint256[])": FunctionFragment;
@@ -77,7 +76,6 @@ export interface DPlaceGridInterface extends utils.Interface {
 
   getFunction(
     nameOrSignatureOrTopic:
-      | "_claimPlace"
       | "basePrice"
       | "calculatePlacePrice"
       | "calculatePlacesPrice"
@@ -99,10 +97,6 @@ export interface DPlaceGridInterface extends utils.Interface {
       | "transferOwnership"
   ): FunctionFragment;
 
-  encodeFunctionData(
-    functionFragment: "_claimPlace",
-    values: [BigNumberish, BigNumberish, BytesLike]
-  ): string;
   encodeFunctionData(functionFragment: "basePrice", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "calculatePlacePrice",
@@ -171,10 +165,6 @@ export interface DPlaceGridInterface extends utils.Interface {
     values: [string]
   ): string;
 
-  decodeFunctionResult(
-    functionFragment: "_claimPlace",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(functionFragment: "basePrice", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "calculatePlacePrice",
@@ -235,13 +225,11 @@ export interface DPlaceGridInterface extends utils.Interface {
     "Initialized(uint8)": EventFragment;
     "OwnershipTransferred(address,address)": EventFragment;
     "PlaceChanged(uint256,uint256,address,bytes,uint256)": EventFragment;
-    "PlacesChanged(uint256[],uint256[],address,bytes[],uint256[])": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "Initialized"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "OwnershipTransferred"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "PlaceChanged"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "PlacesChanged"): EventFragment;
 }
 
 export interface InitializedEventObject {
@@ -277,20 +265,6 @@ export type PlaceChangedEvent = TypedEvent<
 
 export type PlaceChangedEventFilter = TypedEventFilter<PlaceChangedEvent>;
 
-export interface PlacesChangedEventObject {
-  x: BigNumber[];
-  y: BigNumber[];
-  owner: string;
-  data: string[];
-  price: BigNumber[];
-}
-export type PlacesChangedEvent = TypedEvent<
-  [BigNumber[], BigNumber[], string, string[], BigNumber[]],
-  PlacesChangedEventObject
->;
-
-export type PlacesChangedEventFilter = TypedEventFilter<PlacesChangedEvent>;
-
 export interface DPlaceGrid extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
@@ -318,13 +292,6 @@ export interface DPlaceGrid extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
-    _claimPlace(
-      x: BigNumberish,
-      y: BigNumberish,
-      data: BytesLike,
-      overrides?: PayableOverrides & { from?: string }
-    ): Promise<ContractTransaction>;
-
     basePrice(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     calculatePlacePrice(
@@ -420,13 +387,6 @@ export interface DPlaceGrid extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
   };
-
-  _claimPlace(
-    x: BigNumberish,
-    y: BigNumberish,
-    data: BytesLike,
-    overrides?: PayableOverrides & { from?: string }
-  ): Promise<ContractTransaction>;
 
   basePrice(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -524,13 +484,6 @@ export interface DPlaceGrid extends BaseContract {
   ): Promise<ContractTransaction>;
 
   callStatic: {
-    _claimPlace(
-      x: BigNumberish,
-      y: BigNumberish,
-      data: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
     basePrice(overrides?: CallOverrides): Promise<BigNumber>;
 
     calculatePlacePrice(
@@ -652,31 +605,9 @@ export interface DPlaceGrid extends BaseContract {
       data?: null,
       price?: null
     ): PlaceChangedEventFilter;
-
-    "PlacesChanged(uint256[],uint256[],address,bytes[],uint256[])"(
-      x?: null,
-      y?: null,
-      owner?: null,
-      data?: null,
-      price?: null
-    ): PlacesChangedEventFilter;
-    PlacesChanged(
-      x?: null,
-      y?: null,
-      owner?: null,
-      data?: null,
-      price?: null
-    ): PlacesChangedEventFilter;
   };
 
   estimateGas: {
-    _claimPlace(
-      x: BigNumberish,
-      y: BigNumberish,
-      data: BytesLike,
-      overrides?: PayableOverrides & { from?: string }
-    ): Promise<BigNumber>;
-
     basePrice(overrides?: CallOverrides): Promise<BigNumber>;
 
     calculatePlacePrice(
@@ -766,13 +697,6 @@ export interface DPlaceGrid extends BaseContract {
   };
 
   populateTransaction: {
-    _claimPlace(
-      x: BigNumberish,
-      y: BigNumberish,
-      data: BytesLike,
-      overrides?: PayableOverrides & { from?: string }
-    ): Promise<PopulatedTransaction>;
-
     basePrice(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     calculatePlacePrice(

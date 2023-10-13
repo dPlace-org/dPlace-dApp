@@ -12,6 +12,7 @@ import {
   IconButton,
   Spinner,
   Stack,
+  Tooltip,
   useBreakpointValue,
   useDisclosure,
   useToast,
@@ -93,7 +94,7 @@ export default function Grid({ block }: { block: number }) {
   // load grid image and set size
   useEffect(() => {
     if (!isMobile) onOpen()
-  }, [])
+  }, [isMobile])
 
   // draw canvas
   useEffect(() => {
@@ -243,6 +244,7 @@ export default function Grid({ block }: { block: number }) {
     if (!updateCanvas || !transformComponentRef.current) {
       return
     }
+    setShowColorPicker(false)
     const bounding = updateCanvas.canvas.getBoundingClientRect()
     let scale = transformComponentRef.current.instance.transformState.scale
     const x = Math.floor((event.clientX - bounding.left) / scale / pixelSize)
@@ -324,84 +326,119 @@ export default function Grid({ block }: { block: number }) {
       gap="1em"
     >
       <Stack>
-        <IconButton
-          aria-label="close"
-          icon={<Icon as={GiHamburgerMenu} />}
-          onClick={
-            isOpen
-              ? () => {
-                  setSelectedPlace(undefined)
-                  onClose()
-                }
-              : () => {
-                  onOpen()
-                }
-          }
-          _hover={{ backgroundColor: "#FF4500", color: "white" }}
-        />
-        <IconButton
-          aria-label="center"
-          icon={<Icon as={PiCrosshairBold} />}
-          onClick={centerCanvas}
-          _hover={{ backgroundColor: "#FF4500", color: "white" }}
-        />
-        <IconButton
-          aria-label="select"
-          icon={<Icon as={LiaHandPointer} />}
-          bgColor={tool === "select" ? "#FF4500" : ""}
-          color={tool === "select" ? "white" : ""}
-          onClick={() => setTool("select")}
-          _hover={{ backgroundColor: "#FF4500", color: "white" }}
-        />
-        <IconButton
-          aria-label="move"
-          icon={<Icon as={BsArrowsMove} />}
-          bgColor={tool === "move" ? "#FF4500" : ""}
-          color={tool === "move" ? "white" : ""}
-          onClick={() => setTool("move")}
-          _hover={{ backgroundColor: "#FF4500", color: "white" }}
-        />
-        <IconButton
-          aria-label="update"
-          icon={<Icon as={LuPaintbrush2} />}
-          bgColor={tool === "update" ? color : ""}
-          color={tool === "update" ? "white" : ""}
-          onClick={() => setTool("update")}
-          _hover={{ backgroundColor: "#FF4500", color: "white" }}
-        />
+        <Tooltip label="Close Menu" placement="right">
+          <IconButton
+            aria-label="close"
+            icon={<Icon as={GiHamburgerMenu} />}
+            onClick={
+              isOpen
+                ? () => {
+                    setSelectedPlace(undefined)
+                    onClose()
+                  }
+                : () => {
+                    onOpen()
+                  }
+            }
+            _hover={{ backgroundColor: "#FF4500", color: "white" }}
+          />
+        </Tooltip>
+        <Tooltip label="Center Grid" placement="right">
+          <IconButton
+            aria-label="center"
+            icon={<Icon as={PiCrosshairBold} />}
+            onClick={() => {
+              centerCanvas()
+              setShowColorPicker(false)
+            }}
+            _hover={{ backgroundColor: "#FF4500", color: "white" }}
+          />
+        </Tooltip>
+        <Tooltip label="View Place" placement="right">
+          <IconButton
+            aria-label="select"
+            icon={<Icon as={LiaHandPointer} />}
+            bgColor={tool === "select" ? "#FF4500" : ""}
+            color={tool === "select" ? "white" : ""}
+            onClick={() => {
+              setTool("select")
+              setShowColorPicker(false)
+            }}
+            _hover={{ backgroundColor: "#FF4500", color: "white" }}
+          />
+        </Tooltip>
+        <Tooltip label="Move" placement="right">
+          <IconButton
+            aria-label="move"
+            icon={<Icon as={BsArrowsMove} />}
+            bgColor={tool === "move" ? "#FF4500" : ""}
+            color={tool === "move" ? "white" : ""}
+            onClick={() => {
+              setTool("move")
+              setShowColorPicker(false)
+            }}
+            _hover={{ backgroundColor: "#FF4500", color: "white" }}
+          />
+        </Tooltip>
+        <Tooltip label="Paint" placement="right">
+          <IconButton
+            aria-label="update"
+            icon={<Icon as={LuPaintbrush2} />}
+            bgColor={tool === "update" ? "#FF4500" : ""}
+            color={tool === "update" ? "white" : ""}
+            onClick={() => {
+              setTool("update")
+              setShowColorPicker(false)
+            }}
+            _hover={{ backgroundColor: "#FF4500", color: "white" }}
+          />
+        </Tooltip>
         {(tool == "update" || tool == "remove") && (
           <>
-            <IconButton
-              aria-label="show-color-picker"
-              icon={<Icon as={FaPalette} />}
-              onClick={toggleColorPicker}
-              _hover={{ backgroundColor: "#FF4500", color: "white" }}
-            />
-            <IconButton
-              aria-label="remove"
-              icon={<Icon as={PiEraserBold} />}
-              bgColor={tool === "remove" ? "#FF4500" : ""}
-              color={tool === "remove" ? "white" : ""}
-              onClick={() => setTool("remove")}
-              _hover={{ backgroundColor: "#FF4500", color: "white" }}
-            />
+            <Tooltip label="Toggle Color Picker" placement="right">
+              <IconButton
+                aria-label="show-color-picker"
+                icon={<Icon as={FaPalette} />}
+                onClick={toggleColorPicker}
+              />
+            </Tooltip>
+            <Tooltip label="Eraser" placement="right">
+              <IconButton
+                aria-label="remove"
+                icon={<Icon as={PiEraserBold} />}
+                bgColor={tool === "remove" ? "#FF4500" : ""}
+                color={tool === "remove" ? "white" : ""}
+                onClick={() => {
+                  setTool("remove")
+                  setShowColorPicker(false)
+                }}
+                _hover={{ backgroundColor: "#FF4500", color: "white" }}
+              />
+            </Tooltip>
           </>
         )}
         {updatedPlaces.length > 0 && (
-          <IconButton
-            aria-label="clear"
-            icon={<Icon as={ImBin} />}
-            onClick={clearUpdatedPlaces}
-            _hover={{ backgroundColor: "#FF4500", color: "white" }}
-          />
+          <Tooltip label="Clear Updates" placement="right">
+            <IconButton
+              aria-label="clear"
+              icon={<Icon as={ImBin} />}
+              onClick={() => {
+                clearUpdatedPlaces()
+                setShowColorPicker(false)
+              }}
+              _hover={{ backgroundColor: "#FF4500", color: "white" }}
+            />
+          </Tooltip>
         )}
         {!isOpen && updatedPlaces.length > 0 && (
-          <IconButton
-            aria-label="save"
-            icon={<Icon as={BiSave} />}
-            onClick={onOpen}
-            _hover={{ backgroundColor: "#FF4500", color: "white" }}
-          />
+          <Tooltip label="Save Updates" placement="right">
+            <IconButton
+              aria-label="save"
+              icon={<Icon as={BiSave} />}
+              onClick={onOpen}
+              _hover={{ backgroundColor: "#FF4500", color: "white" }}
+            />
+          </Tooltip>
         )}
       </Stack>
       {(tool == "update" || tool == "remove") && showColorPicker && (
