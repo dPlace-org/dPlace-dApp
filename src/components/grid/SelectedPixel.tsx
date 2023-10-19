@@ -1,4 +1,4 @@
-import { useGetPlace } from "@/utils/Subgraph"
+import { useGetPixel } from "@/utils/Subgraph"
 import { trimAddress } from "@/utils/utils"
 import { Center, Heading, HStack, Spinner, Stack, Text } from "@chakra-ui/react"
 import { ethers } from "ethers"
@@ -6,31 +6,31 @@ import { useEffect, useState } from "react"
 import Countdown from "react-countdown"
 import { useCalculatePriceUSD } from "../../utils/Price"
 import Identicon from "../identicon"
-import { Place } from "./Grid"
+import { Pixel } from "./Grid"
 
-export default function SelectedPlace({
-  place,
+export default function SelectedPixel({
+  pixel,
   setUpdateColor,
 }: {
-  place: Place | null
+  pixel: Pixel | null
   setUpdateColor: (val: string) => void
 }) {
   const [price, setPrice] = useState<string>("0.0")
   const [owner, setOwner] = useState<string>("--")
   const [color, setColor] = useState<string>("lightgray")
   const [halvingTime, setHalvingTime] = useState<number>(0)
-  const { getPlace, initialized, loading } = useGetPlace()
+  const { getPixel, initialized, loading } = useGetPixel()
   const { usdPrice } = useCalculatePriceUSD({ ethAmount: price })
 
   useEffect(() => {
     let handler = async () => {
-      let _place = await getPlace(place.x, place.y)
-      if (_place) {
-        setPrice(ethers.utils.formatEther(_place.price))
-        setOwner(_place.owner)
-        setColor(_place.color)
-        setUpdateColor(_place.color)
-        setHalvingTime(calculateNextHalving(_place))
+      let _pixel = await getPixel(pixel.x, pixel.y)
+      if (_pixel) {
+        setPrice(ethers.utils.formatEther(_pixel.price))
+        setOwner(_pixel.owner)
+        setColor(_pixel.color)
+        setUpdateColor(_pixel.color)
+        setHalvingTime(calculateNextHalving(_pixel))
         return
       }
       setColor("lightgray")
@@ -38,12 +38,12 @@ export default function SelectedPlace({
       setPrice("0.0")
       setHalvingTime(null)
     }
-    if (place && initialized) handler()
-  }, [place, initialized])
+    if (pixel && initialized) handler()
+  }, [pixel, initialized])
 
-  const calculateNextHalving = (place: Place) => {
+  const calculateNextHalving = (pixel: Pixel) => {
     let halvingsPassed =
-      (Date.now() - Number(place.lastUpdated) * 1000) / 1000 / 60 / 60 / 4
+      (Date.now() - Number(pixel.lastUpdated) * 1000) / 1000 / 60 / 60 / 4
     let wholeHalvingsPassed = Math.floor(halvingsPassed)
     let nextHalvingIn =
       (1 - (halvingsPassed - wholeHalvingsPassed)) * 4 * 60 * 60 * 1000
@@ -53,7 +53,7 @@ export default function SelectedPlace({
   return (
     <Stack
       mt="1em"
-      placeContent={"center"}
+      pixelContent={"center"}
       bgColor="white"
       boxShadow="0 10px 10px rgb(0 0 0 / 0.2)"
     >
@@ -70,7 +70,7 @@ export default function SelectedPlace({
               size="lg"
               textAlign={"center"}
             >
-              {place ? "X" + place.x + " • " + "Y" + place.y : "Select a place"}
+              {pixel ? "X" + pixel.x + " • " + "Y" + pixel.y : "Select a pixel"}
             </Heading>
             <Stack
               w="5em"
@@ -83,10 +83,10 @@ export default function SelectedPlace({
               fontWeight={"bold"}
             >
               <Text color="white" opacity=".6">
-                {place?.x || "--"}
+                {pixel?.x || "--"}
               </Text>
               <Text color="white" opacity=".6">
-                {place?.y || "--"}
+                {pixel?.y || "--"}
               </Text>
             </Stack>
           </Stack>

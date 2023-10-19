@@ -25,9 +25,7 @@ import { GiHamburgerMenu } from "react-icons/gi"
 import { ImBin } from "react-icons/im"
 import { LuPaintbrush2 } from "react-icons/lu"
 import { PiCrosshairBold, PiEraserBold } from "react-icons/pi"
-import { useGetPlaces } from "../../utils/Subgraph"
-import ManagePlaces from "./ManagePlaces"
-import SelectedPlace from "./SelectedPlace"
+import { useGetPixels } from "../../utils/Subgraph"
 
 import { useContract, useContractEvents, useSigner } from "@thirdweb-dev/react"
 import { ethers } from "ethers"
@@ -39,8 +37,10 @@ import {
   TransformWrapper,
 } from "react-zoom-pan-pinch"
 import { DPlaceGrid__factory } from "types"
+import ManagePixels from "./ManagePixels"
+import SelectedPixel from "./SelectedPixel"
 
-export interface Place {
+export interface Pixel {
   x: number
   y: number
   color?: string
@@ -63,16 +63,16 @@ export default function Grid({ block }: { block: number }) {
   const [updateCanvas, setUpdateCanvas] =
     useState<CanvasRenderingContext2D | null>(null)
   const [size, setSize] = useState(0)
-  const [newPlaces, setNewPlaces] = useState<Place[]>([])
-  const [updatedPlaces, setUpdatedPlaces] = useState<Place[]>([])
-  const [selectedPlace, setSelectedPlace] = useState<Place>()
+  const [newPixels, setNewPixels] = useState<Pixel[]>([])
+  const [updatedPixels, setUpdatedPixels] = useState<Pixel[]>([])
+  const [selectedPixel, setSelectedPixel] = useState<Pixel>()
   const [currentBlock, setCurrentBlock] = useState<number>(block)
-  const { getPlaces, loading } = useGetPlaces()
+  const { getPixels, loading } = useGetPixels()
   const [tool, setTool] = useState("move")
   const [showColorPicker, setShowColorPicker] = useState(false)
   const [transformDisabled, setTransformDisabled] = useState(false)
   const [color, setColor] = useState("#FF4500")
-  const [drawingPlaces, setDrawingPlaces] = useState(false)
+  const [drawingPixels, setDrawingPixels] = useState(false)
   const { contract } = useContract(gridAddress, DPlaceGrid__factory.abi)
   const isMobile = useBreakpointValue({ base: true, md: false })
   const signer = useSigner()
@@ -80,7 +80,7 @@ export default function Grid({ block }: { block: number }) {
 
   const { data, isLoading, error } = useContractEvents(
     contract,
-    "PlaceChanged",
+    "PixelChanged",
     {
       queryFilter: {
         order: "desc",
@@ -106,13 +106,11 @@ export default function Grid({ block }: { block: number }) {
         canvas.drawImage(gridImage, 0, 0, size, size)
         // Catch up grid from subgraph
         let timestamp = currentGridImageUrl.split("-")[1].split(".")[0]
-        let places = await getPlaces(Number(timestamp))
-        setNewPlaces(places)
-        for (let i = 0; i < places.length; i++) {
-          setTimeout(() => addNewPlace(places[i]), 1)
+        let pixels = await getPixels(Number(timestamp))
+        setNewPixels(pixels)
+        for (let i = 0; i < pixels.length; i++) {
+          setTimeout(() => addNewPixel(pixels[i]), 1)
         }
-
-        // initializeNewPlaces(places)
       }
       if (canvasRef.current && updateCanvasRef.current && size > 0) {
         let _canvas = canvasRef.current.getContext("2d")
@@ -130,7 +128,7 @@ export default function Grid({ block }: { block: number }) {
         let x = Number(data[i].data.x)
         let y = Number(data[i].data.y)
         let color = ethers.utils.parseBytes32String(data[i].data.data)
-        setTimeout(() => addNewPlace({ x, y, color }), 1)
+        setTimeout(() => addNewPixel({ x, y, color }), 1)
       }
     }
     let handler = async () => {
@@ -142,7 +140,7 @@ export default function Grid({ block }: { block: number }) {
 
   useEffect(() => {
     if (tool !== "select") {
-      setSelectedPlace(undefined)
+      setSelectedPixel(undefined)
     }
     if (tool == "move") {
       setTransformDisabled(false)
@@ -151,96 +149,96 @@ export default function Grid({ block }: { block: number }) {
     }
   }, [tool])
 
-  function addNewPlace(place: Place) {
+  function addNewPixel(pixel: Pixel) {
     if (!canvas) return
 
-    let newPlaceIndex = newPlaces.findIndex(
-      (_place) => _place.x === place.x && _place.y === place.y,
+    let newPixelIndex = newPixels.findIndex(
+      (_pixel) => _pixel.x === pixel.x && _pixel.y === pixel.y,
     )
-    if (newPlaces[newPlaceIndex]?.color === place.color) {
+    if (newPixels[newPixelIndex]?.color === pixel.color) {
       return
     }
-    let x = place.x
-    let y = place.y
-    let color = place.color
-    // draw place on canvas
+    let x = pixel.x
+    let y = pixel.y
+    let color = pixel.color
+    // draw pixel on canvas
 
     if (color) {
       canvas.fillStyle = color
       canvas.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize)
     }
 
-    if (newPlaceIndex !== -1) {
-      let _newPlaces = newPlaces
-      _newPlaces[newPlaceIndex].color = place.color
-      setNewPlaces([..._newPlaces])
+    if (newPixelIndex !== -1) {
+      let _newPixels = newPixels
+      _newPixels[newPixelIndex].color = pixel.color
+      setNewPixels([..._newPixels])
     } else {
-      let _newPlaces = newPlaces
-      setNewPlaces([..._newPlaces, place])
+      let _newPixels = newPixels
+      setNewPixels([..._newPixels, pixel])
     }
   }
 
-  function updatePlace(x, y) {
+  function updatePixel(x, y) {
     if (!signer) {
       // open modal
     }
-    let index = updatedPlaces.findIndex(
-      (place) => place.x === x && place.y === y,
+    let index = updatedPixels.findIndex(
+      (pixel) => pixel.x === x && pixel.y === y,
     )
-    // if place already being updated, update the color
+    // if pixel already being updated, update the color
     if (index !== -1) {
-      let _updatedPlaces = updatedPlaces
-      _updatedPlaces[index].color = color
-      setUpdatedPlaces([..._updatedPlaces])
+      let _updatedPixels = updatedPixels
+      _updatedPixels[index].color = color
+      setUpdatedPixels([..._updatedPixels])
       updateCanvas.clearRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize)
       updateCanvas.fillStyle = color
       updateCanvas.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize)
       return
     }
-    if (updatedPlaces.length == maxSpaces) {
+    if (updatedPixels.length == maxSpaces) {
       return // TODO: SHOW A TOAST?
     }
     updateCanvas.fillStyle = color
     updateCanvas.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize)
-    setUpdatedPlaces([...updatedPlaces, { x, y, color }])
+    setUpdatedPixels([...updatedPixels, { x, y, color }])
   }
 
-  function confirmClaimPlaces() {
+  function confirmClaimPixels() {
     toast({
-      title: `Places Claimed!`,
-      description: `You have successfully claimed ${updatedPlaces.length} places!`,
+      title: `Pixels Claimed!`,
+      description: `You have successfully claimed ${updatedPixels.length} pixels!`,
       status: "success",
       isClosable: true,
     })
-    setUpdatedPlaces([])
+    setUpdatedPixels([])
   }
 
-  function removeUpdatedPlace(x: number, y: number) {
+  function removeUpdatedPixel(x: number, y: number) {
     updateCanvas.clearRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize)
 
-    let index = updatedPlaces.findIndex(
-      (place) => place.x === x && place.y === y,
+    let index = updatedPixels.findIndex(
+      (pixel) => pixel.x === x && pixel.y === y,
     )
     if (!updateCanvas || index == -1) {
       return
     }
-    setUpdatedPlaces([
-      ...updatedPlaces.filter((place) => !(place.x === x && place.y === y)),
+    setUpdatedPixels([
+      ...updatedPixels.filter((pixel) => !(pixel.x === x && pixel.y === y)),
     ])
   }
 
-  function clearUpdatedPlaces() {
+  function clearUpdatedPixels() {
     if (!updateCanvas) return
-    setUpdatedPlaces([])
+    setUpdatedPixels([])
     updateCanvas.clearRect(0, 0, size, size)
   }
 
-  function selectPlace(x, y) {
+  function selectPixel(x, y) {
     if (!isOpen) onOpen()
-    setSelectedPlace({ x, y })
+    setSelectedPixel({ x, y })
   }
 
-  function clickPlace(event) {
+  function clickPixel(event) {
     if (!updateCanvas || !transformComponentRef.current) {
       return
     }
@@ -251,16 +249,16 @@ export default function Grid({ block }: { block: number }) {
     const y = Math.floor((event.clientY - bounding.top) / scale / pixelSize)
 
     if (tool === "select") {
-      selectPlace(x, y)
+      selectPixel(x, y)
     } else if (tool === "update") {
-      updatePlace(x, y)
+      updatePixel(x, y)
     } else if (tool === "remove") {
-      removeUpdatedPlace(x, y)
+      removeUpdatedPixel(x, y)
     }
   }
 
-  function drawPlaces(event) {
-    if (!drawingPlaces) return
+  function drawPixels(event) {
+    if (!drawingPixels) return
     const bounding = updateCanvas.canvas.getBoundingClientRect()
     let scale = transformComponentRef.current.instance.transformState.scale
     let x
@@ -277,20 +275,20 @@ export default function Grid({ block }: { block: number }) {
       y = Math.floor((event.clientY - bounding.top) / scale / pixelSize)
     }
     if (tool === "update") {
-      updatePlace(x, y)
+      updatePixel(x, y)
     } else if (tool === "remove") {
-      removeUpdatedPlace(x, y)
+      removeUpdatedPixel(x, y)
     }
   }
 
-  function enableDrawPlaces(event) {
+  function enableDrawPixels(event) {
     if (tool == "move") return
-    setDrawingPlaces(true)
+    setDrawingPixels(true)
   }
 
-  function disableDrawPlaces(event) {
+  function disableDrawPixels(event) {
     if (tool == "move") return
-    setDrawingPlaces(false)
+    setDrawingPixels(false)
   }
 
   function toggleColorPicker() {
@@ -333,7 +331,7 @@ export default function Grid({ block }: { block: number }) {
             onClick={
               isOpen
                 ? () => {
-                    setSelectedPlace(undefined)
+                    setSelectedPixel(undefined)
                     onClose()
                   }
                 : () => {
@@ -354,7 +352,7 @@ export default function Grid({ block }: { block: number }) {
             _hover={{ backgroundColor: "#FF4500", color: "white" }}
           />
         </Tooltip>
-        <Tooltip label="View Place" placement="right">
+        <Tooltip label="View Pixel" placement="right">
           <IconButton
             aria-label="select"
             icon={<Icon as={LiaHandPointer} />}
@@ -417,20 +415,20 @@ export default function Grid({ block }: { block: number }) {
             </Tooltip>
           </>
         )}
-        {updatedPlaces.length > 0 && (
+        {updatedPixels.length > 0 && (
           <Tooltip label="Clear Updates" placement="right">
             <IconButton
               aria-label="clear"
               icon={<Icon as={ImBin} />}
               onClick={() => {
-                clearUpdatedPlaces()
+                clearUpdatedPixels()
                 setShowColorPicker(false)
               }}
               _hover={{ backgroundColor: "#FF4500", color: "white" }}
             />
           </Tooltip>
         )}
-        {!isOpen && updatedPlaces.length > 0 && (
+        {!isOpen && updatedPixels.length > 0 && (
           <Tooltip label="Save Updates" placement="right">
             <IconButton
               aria-label="save"
@@ -494,15 +492,15 @@ export default function Grid({ block }: { block: number }) {
                 position: "relative",
                 zIndex: 100000,
               }}
-              onClick={clickPlace}
-              onMouseMoveCapture={drawPlaces}
-              onTouchMoveCapture={drawPlaces}
-              onMouseDown={enableDrawPlaces}
-              onTouchStart={enableDrawPlaces}
-              onMouseLeave={disableDrawPlaces}
-              onMouseUp={disableDrawPlaces}
-              onTouchEnd={disableDrawPlaces}
-              onTouchCancel={disableDrawPlaces}
+              onClick={clickPixel}
+              onMouseMoveCapture={drawPixels}
+              onTouchMoveCapture={drawPixels}
+              onMouseDown={enableDrawPixels}
+              onTouchStart={enableDrawPixels}
+              onMouseLeave={disableDrawPixels}
+              onMouseUp={disableDrawPixels}
+              onTouchEnd={disableDrawPixels}
+              onTouchCancel={disableDrawPixels}
             />
           </TransformComponent>
         </TransformWrapper>
@@ -534,16 +532,16 @@ export default function Grid({ block }: { block: number }) {
               justifyContent={"space-between"}
             >
               {controls}
-              <ManagePlaces
-                confirmClaimPlaces={confirmClaimPlaces}
-                removePlace={removeUpdatedPlace}
-                clearUpdatedPlaces={clearUpdatedPlaces}
-                updatedPlaces={updatedPlaces}
+              <ManagePixels
+                confirmClaimPixels={confirmClaimPixels}
+                removePixel={removeUpdatedPixel}
+                clearUpdatedPixels={clearUpdatedPixels}
+                updatedPixels={updatedPixels}
                 maxSpaces={maxSpaces}
               />
-              {selectedPlace && (
-                <SelectedPlace
-                  place={selectedPlace}
+              {selectedPixel && (
+                <SelectedPixel
+                  pixel={selectedPixel}
                   setUpdateColor={setColor}
                 />
               )}

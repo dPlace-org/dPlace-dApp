@@ -1,17 +1,17 @@
 import { useEffect, useState } from "react"
 import { cacheExchange, Client, createClient, fetchExchange } from "urql"
-import { Place } from "../components/grid/Grid"
+import { Pixel } from "../components/grid/Grid"
 
 const PAGESIZE = 100
 
-export async function getPlaces(
+export async function getPixels(
   client: Client,
   timestamp: number,
   page: number,
-): Promise<Place[]> {
+): Promise<Pixel[]> {
   const q = `
-  query getPlaces($timestamp: Int!, $first: Int!, $skip: Int!) {
-    places(first: $first, skip: $skip, where: {lastUpdated_gte: $timestamp}) {
+  query getPixels($timestamp: Int!, $first: Int!, $skip: Int!) {
+    pixels(first: $first, skip: $skip, where: {lastUpdated_gte: $timestamp}) {
       x
       y
       color
@@ -25,20 +25,20 @@ export async function getPlaces(
   return await client
     .query(q, { timestamp, first, skip })
     .toPromise()
-    .then((result) => result.data.places)
+    .then((result) => result.data.pixels)
     .catch((err) => {
       return []
     })
 }
 
-export async function getPlace(
+export async function getPixel(
   client: Client,
   x: String,
   y: String,
-): Promise<Place> {
+): Promise<Pixel> {
   const q = `
-  query getPlace($x: String!, $y: String!) {
-    places(where: { and: [{x: $x}, {y: $y}]}) {
+  query getPixel($x: String!, $y: String!) {
+    pixels(where: { and: [{x: $x}, {y: $y}]}) {
       x
       y
       owner
@@ -57,8 +57,8 @@ export async function getPlace(
     })
 }
 
-export const useGetPlace = (): {
-  getPlace: (x: Number, y: Number) => Promise<Place>
+export const useGetPixel = (): {
+  getPixel: (x: Number, y: Number) => Promise<Pixel>
   loading: boolean
   initialized: boolean
   error: string
@@ -78,13 +78,13 @@ export const useGetPlace = (): {
     setInitialized(true)
   }, [])
 
-  const queryPlace = async (x: Number, y: Number) => {
+  const queryPixel = async (x: Number, y: Number) => {
     if (client) {
       try {
         setLoading(true)
-        let place = await getPlace(client, String(x), String(y))
+        let pixel = await getPixel(client, String(x), String(y))
         setLoading(false)
-        return place
+        return pixel
       } catch (err) {
         console.log(err)
         setLoading(false)
@@ -94,11 +94,11 @@ export const useGetPlace = (): {
     return null
   }
 
-  return { getPlace: queryPlace, loading, initialized, error }
+  return { getPixel: queryPixel, loading, initialized, error }
 }
 
-export const useGetPlaces = (): {
-  getPlaces: (timestamp: Number) => Promise<Place[]>
+export const useGetPixels = (): {
+  getPixels: (timestamp: Number) => Promise<Pixel[]>
   loading: boolean
   error: string
 } => {
@@ -115,23 +115,23 @@ export const useGetPlaces = (): {
     setClient(client)
   }, [])
 
-  const queryPlaces = async (timestamp: number) => {
+  const queryPixels = async (timestamp: number) => {
     if (client) {
       try {
         let done = false
-        let places = []
+        let pixels = []
         let page = 0
         setLoading(true)
         while (!done) {
-          let _places = await getPlaces(client, timestamp, page)
-          places = [...places, ..._places]
-          if (_places.length < PAGESIZE) {
+          let _pixels = await getPixels(client, timestamp, page)
+          pixels = [...pixels, ..._pixels]
+          if (_pixels.length < PAGESIZE) {
             done = true
           }
           page++
         }
         setLoading(false)
-        return places
+        return pixels
       } catch (err) {
         console.log(err)
         setLoading(false)
@@ -141,5 +141,5 @@ export const useGetPlaces = (): {
     return []
   }
 
-  return { getPlaces: queryPlaces, loading, error }
+  return { getPixels: queryPixels, loading, error }
 }

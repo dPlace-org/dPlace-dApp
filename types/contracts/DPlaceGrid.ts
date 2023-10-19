@@ -28,41 +28,33 @@ import type {
 } from "../common";
 
 export declare namespace DPlaceGrid {
-  export type PlaceStruct = {
-    lastUpdateTime: BigNumberish;
+  export type PixelStruct = {
     contested: BigNumberish;
+    lastUpdateTime: BigNumberish;
     purchasePrice: BigNumberish;
     owner: string;
-    data: BytesLike;
   };
 
-  export type PlaceStructOutput = [
-    BigNumber,
-    BigNumber,
-    BigNumber,
-    string,
-    string
-  ] & {
+  export type PixelStructOutput = [number, BigNumber, BigNumber, string] & {
+    contested: number;
     lastUpdateTime: BigNumber;
-    contested: BigNumber;
     purchasePrice: BigNumber;
     owner: string;
-    data: string;
   };
 }
 
 export interface DPlaceGridInterface extends utils.Interface {
   functions: {
     "basePrice()": FunctionFragment;
-    "calculatePlacePrice(uint256,uint256)": FunctionFragment;
-    "calculatePlacesPrice(uint256[],uint256[])": FunctionFragment;
-    "claimPlace(uint256,uint256,bytes)": FunctionFragment;
-    "claimPlaces(uint256[],uint256[],bytes[])": FunctionFragment;
-    "getPlace(uint256,uint256)": FunctionFragment;
+    "calculatePixelPrice(uint256,uint256)": FunctionFragment;
+    "calculatePixelsPrice(uint256[],uint256[])": FunctionFragment;
+    "claimPixel(uint256,uint256,bytes)": FunctionFragment;
+    "claimPixels(uint256[],uint256[],bytes[])": FunctionFragment;
+    "deposits(address)": FunctionFragment;
+    "getPixel(uint256,uint256)": FunctionFragment;
     "grid(uint256,uint256)": FunctionFragment;
     "gridSize()": FunctionFragment;
     "initialize(uint256,uint256,uint256,uint256)": FunctionFragment;
-    "isDataValid(bytes)": FunctionFragment;
     "owner()": FunctionFragment;
     "priceDecayInterval()": FunctionFragment;
     "priceVelocity()": FunctionFragment;
@@ -72,20 +64,21 @@ export interface DPlaceGridInterface extends utils.Interface {
     "setPriceVelocity(uint256)": FunctionFragment;
     "setpPriceDecayInterval(uint256)": FunctionFragment;
     "transferOwnership(address)": FunctionFragment;
+    "withdraw()": FunctionFragment;
   };
 
   getFunction(
     nameOrSignatureOrTopic:
       | "basePrice"
-      | "calculatePlacePrice"
-      | "calculatePlacesPrice"
-      | "claimPlace"
-      | "claimPlaces"
-      | "getPlace"
+      | "calculatePixelPrice"
+      | "calculatePixelsPrice"
+      | "claimPixel"
+      | "claimPixels"
+      | "deposits"
+      | "getPixel"
       | "grid"
       | "gridSize"
       | "initialize"
-      | "isDataValid"
       | "owner"
       | "priceDecayInterval"
       | "priceVelocity"
@@ -95,27 +88,29 @@ export interface DPlaceGridInterface extends utils.Interface {
       | "setPriceVelocity"
       | "setpPriceDecayInterval"
       | "transferOwnership"
+      | "withdraw"
   ): FunctionFragment;
 
   encodeFunctionData(functionFragment: "basePrice", values?: undefined): string;
   encodeFunctionData(
-    functionFragment: "calculatePlacePrice",
+    functionFragment: "calculatePixelPrice",
     values: [BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "calculatePlacesPrice",
+    functionFragment: "calculatePixelsPrice",
     values: [BigNumberish[], BigNumberish[]]
   ): string;
   encodeFunctionData(
-    functionFragment: "claimPlace",
+    functionFragment: "claimPixel",
     values: [BigNumberish, BigNumberish, BytesLike]
   ): string;
   encodeFunctionData(
-    functionFragment: "claimPlaces",
+    functionFragment: "claimPixels",
     values: [BigNumberish[], BigNumberish[], BytesLike[]]
   ): string;
+  encodeFunctionData(functionFragment: "deposits", values: [string]): string;
   encodeFunctionData(
-    functionFragment: "getPlace",
+    functionFragment: "getPixel",
     values: [BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
@@ -126,10 +121,6 @@ export interface DPlaceGridInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "initialize",
     values: [BigNumberish, BigNumberish, BigNumberish, BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "isDataValid",
-    values: [BytesLike]
   ): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(
@@ -164,29 +155,27 @@ export interface DPlaceGridInterface extends utils.Interface {
     functionFragment: "transferOwnership",
     values: [string]
   ): string;
+  encodeFunctionData(functionFragment: "withdraw", values?: undefined): string;
 
   decodeFunctionResult(functionFragment: "basePrice", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "calculatePlacePrice",
+    functionFragment: "calculatePixelPrice",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "calculatePlacesPrice",
+    functionFragment: "calculatePixelsPrice",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "claimPlace", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "claimPixel", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "claimPlaces",
+    functionFragment: "claimPixels",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "getPlace", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "deposits", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "getPixel", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "grid", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "gridSize", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "initialize", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "isDataValid",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "priceDecayInterval",
@@ -220,16 +209,17 @@ export interface DPlaceGridInterface extends utils.Interface {
     functionFragment: "transferOwnership",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "withdraw", data: BytesLike): Result;
 
   events: {
     "Initialized(uint8)": EventFragment;
     "OwnershipTransferred(address,address)": EventFragment;
-    "PlaceChanged(uint256,uint256,address,bytes,uint256)": EventFragment;
+    "PixelChanged(uint256,uint256,address,bytes,uint256)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "Initialized"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "OwnershipTransferred"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "PlaceChanged"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "PixelChanged"): EventFragment;
 }
 
 export interface InitializedEventObject {
@@ -251,19 +241,19 @@ export type OwnershipTransferredEvent = TypedEvent<
 export type OwnershipTransferredEventFilter =
   TypedEventFilter<OwnershipTransferredEvent>;
 
-export interface PlaceChangedEventObject {
+export interface PixelChangedEventObject {
   x: BigNumber;
   y: BigNumber;
   owner: string;
   data: string;
   price: BigNumber;
 }
-export type PlaceChangedEvent = TypedEvent<
+export type PixelChangedEvent = TypedEvent<
   [BigNumber, BigNumber, string, string, BigNumber],
-  PlaceChangedEventObject
+  PixelChangedEventObject
 >;
 
-export type PlaceChangedEventFilter = TypedEventFilter<PlaceChangedEvent>;
+export type PixelChangedEventFilter = TypedEventFilter<PixelChangedEvent>;
 
 export interface DPlaceGrid extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
@@ -294,49 +284,50 @@ export interface DPlaceGrid extends BaseContract {
   functions: {
     basePrice(overrides?: CallOverrides): Promise<[BigNumber]>;
 
-    calculatePlacePrice(
+    calculatePixelPrice(
       x: BigNumberish,
       y: BigNumberish,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
-    calculatePlacesPrice(
+    calculatePixelsPrice(
       x: BigNumberish[],
       y: BigNumberish[],
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
-    claimPlace(
+    claimPixel(
       x: BigNumberish,
       y: BigNumberish,
       data: BytesLike,
       overrides?: PayableOverrides & { from?: string }
     ): Promise<ContractTransaction>;
 
-    claimPlaces(
+    claimPixels(
       x: BigNumberish[],
       y: BigNumberish[],
       data: BytesLike[],
       overrides?: PayableOverrides & { from?: string }
     ): Promise<ContractTransaction>;
 
-    getPlace(
+    deposits(arg0: string, overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    getPixel(
       x: BigNumberish,
       y: BigNumberish,
       overrides?: CallOverrides
-    ): Promise<[DPlaceGrid.PlaceStructOutput]>;
+    ): Promise<[DPlaceGrid.PixelStructOutput]>;
 
     grid(
       arg0: BigNumberish,
       arg1: BigNumberish,
       overrides?: CallOverrides
     ): Promise<
-      [BigNumber, BigNumber, BigNumber, string, string] & {
+      [number, BigNumber, BigNumber, string] & {
+        contested: number;
         lastUpdateTime: BigNumber;
-        contested: BigNumber;
         purchasePrice: BigNumber;
         owner: string;
-        data: string;
       }
     >;
 
@@ -349,8 +340,6 @@ export interface DPlaceGrid extends BaseContract {
       _gridSize: BigNumberish,
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
-
-    isDataValid(data: BytesLike, overrides?: CallOverrides): Promise<[boolean]>;
 
     owner(overrides?: CallOverrides): Promise<[string]>;
 
@@ -386,53 +375,58 @@ export interface DPlaceGrid extends BaseContract {
       newOwner: string,
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
+
+    withdraw(
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
   };
 
   basePrice(overrides?: CallOverrides): Promise<BigNumber>;
 
-  calculatePlacePrice(
+  calculatePixelPrice(
     x: BigNumberish,
     y: BigNumberish,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
-  calculatePlacesPrice(
+  calculatePixelsPrice(
     x: BigNumberish[],
     y: BigNumberish[],
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
-  claimPlace(
+  claimPixel(
     x: BigNumberish,
     y: BigNumberish,
     data: BytesLike,
     overrides?: PayableOverrides & { from?: string }
   ): Promise<ContractTransaction>;
 
-  claimPlaces(
+  claimPixels(
     x: BigNumberish[],
     y: BigNumberish[],
     data: BytesLike[],
     overrides?: PayableOverrides & { from?: string }
   ): Promise<ContractTransaction>;
 
-  getPlace(
+  deposits(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+  getPixel(
     x: BigNumberish,
     y: BigNumberish,
     overrides?: CallOverrides
-  ): Promise<DPlaceGrid.PlaceStructOutput>;
+  ): Promise<DPlaceGrid.PixelStructOutput>;
 
   grid(
     arg0: BigNumberish,
     arg1: BigNumberish,
     overrides?: CallOverrides
   ): Promise<
-    [BigNumber, BigNumber, BigNumber, string, string] & {
+    [number, BigNumber, BigNumber, string] & {
+      contested: number;
       lastUpdateTime: BigNumber;
-      contested: BigNumber;
       purchasePrice: BigNumber;
       owner: string;
-      data: string;
     }
   >;
 
@@ -445,8 +439,6 @@ export interface DPlaceGrid extends BaseContract {
     _gridSize: BigNumberish,
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
-
-  isDataValid(data: BytesLike, overrides?: CallOverrides): Promise<boolean>;
 
   owner(overrides?: CallOverrides): Promise<string>;
 
@@ -483,52 +475,57 @@ export interface DPlaceGrid extends BaseContract {
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
+  withdraw(
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
   callStatic: {
     basePrice(overrides?: CallOverrides): Promise<BigNumber>;
 
-    calculatePlacePrice(
+    calculatePixelPrice(
       x: BigNumberish,
       y: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    calculatePlacesPrice(
+    calculatePixelsPrice(
       x: BigNumberish[],
       y: BigNumberish[],
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    claimPlace(
+    claimPixel(
       x: BigNumberish,
       y: BigNumberish,
       data: BytesLike,
       overrides?: CallOverrides
-    ): Promise<void>;
+    ): Promise<BigNumber>;
 
-    claimPlaces(
+    claimPixels(
       x: BigNumberish[],
       y: BigNumberish[],
       data: BytesLike[],
       overrides?: CallOverrides
     ): Promise<void>;
 
-    getPlace(
+    deposits(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+    getPixel(
       x: BigNumberish,
       y: BigNumberish,
       overrides?: CallOverrides
-    ): Promise<DPlaceGrid.PlaceStructOutput>;
+    ): Promise<DPlaceGrid.PixelStructOutput>;
 
     grid(
       arg0: BigNumberish,
       arg1: BigNumberish,
       overrides?: CallOverrides
     ): Promise<
-      [BigNumber, BigNumber, BigNumber, string, string] & {
+      [number, BigNumber, BigNumber, string] & {
+        contested: number;
         lastUpdateTime: BigNumber;
-        contested: BigNumber;
         purchasePrice: BigNumber;
         owner: string;
-        data: string;
       }
     >;
 
@@ -541,8 +538,6 @@ export interface DPlaceGrid extends BaseContract {
       _gridSize: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
-
-    isDataValid(data: BytesLike, overrides?: CallOverrides): Promise<boolean>;
 
     owner(overrides?: CallOverrides): Promise<string>;
 
@@ -576,6 +571,8 @@ export interface DPlaceGrid extends BaseContract {
       newOwner: string,
       overrides?: CallOverrides
     ): Promise<void>;
+
+    withdraw(overrides?: CallOverrides): Promise<void>;
   };
 
   filters: {
@@ -591,52 +588,54 @@ export interface DPlaceGrid extends BaseContract {
       newOwner?: string | null
     ): OwnershipTransferredEventFilter;
 
-    "PlaceChanged(uint256,uint256,address,bytes,uint256)"(
+    "PixelChanged(uint256,uint256,address,bytes,uint256)"(
       x?: null,
       y?: null,
       owner?: null,
       data?: null,
       price?: null
-    ): PlaceChangedEventFilter;
-    PlaceChanged(
+    ): PixelChangedEventFilter;
+    PixelChanged(
       x?: null,
       y?: null,
       owner?: null,
       data?: null,
       price?: null
-    ): PlaceChangedEventFilter;
+    ): PixelChangedEventFilter;
   };
 
   estimateGas: {
     basePrice(overrides?: CallOverrides): Promise<BigNumber>;
 
-    calculatePlacePrice(
+    calculatePixelPrice(
       x: BigNumberish,
       y: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    calculatePlacesPrice(
+    calculatePixelsPrice(
       x: BigNumberish[],
       y: BigNumberish[],
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    claimPlace(
+    claimPixel(
       x: BigNumberish,
       y: BigNumberish,
       data: BytesLike,
       overrides?: PayableOverrides & { from?: string }
     ): Promise<BigNumber>;
 
-    claimPlaces(
+    claimPixels(
       x: BigNumberish[],
       y: BigNumberish[],
       data: BytesLike[],
       overrides?: PayableOverrides & { from?: string }
     ): Promise<BigNumber>;
 
-    getPlace(
+    deposits(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+    getPixel(
       x: BigNumberish,
       y: BigNumberish,
       overrides?: CallOverrides
@@ -657,8 +656,6 @@ export interface DPlaceGrid extends BaseContract {
       _gridSize: BigNumberish,
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
-
-    isDataValid(data: BytesLike, overrides?: CallOverrides): Promise<BigNumber>;
 
     owner(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -694,38 +691,45 @@ export interface DPlaceGrid extends BaseContract {
       newOwner: string,
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
+
+    withdraw(overrides?: Overrides & { from?: string }): Promise<BigNumber>;
   };
 
   populateTransaction: {
     basePrice(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    calculatePlacePrice(
+    calculatePixelPrice(
       x: BigNumberish,
       y: BigNumberish,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    calculatePlacesPrice(
+    calculatePixelsPrice(
       x: BigNumberish[],
       y: BigNumberish[],
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    claimPlace(
+    claimPixel(
       x: BigNumberish,
       y: BigNumberish,
       data: BytesLike,
       overrides?: PayableOverrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
-    claimPlaces(
+    claimPixels(
       x: BigNumberish[],
       y: BigNumberish[],
       data: BytesLike[],
       overrides?: PayableOverrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
-    getPlace(
+    deposits(
+      arg0: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getPixel(
       x: BigNumberish,
       y: BigNumberish,
       overrides?: CallOverrides
@@ -745,11 +749,6 @@ export interface DPlaceGrid extends BaseContract {
       _priceVelocity: BigNumberish,
       _gridSize: BigNumberish,
       overrides?: Overrides & { from?: string }
-    ): Promise<PopulatedTransaction>;
-
-    isDataValid(
-      data: BytesLike,
-      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     owner(overrides?: CallOverrides): Promise<PopulatedTransaction>;
@@ -786,6 +785,10 @@ export interface DPlaceGrid extends BaseContract {
 
     transferOwnership(
       newOwner: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
+    withdraw(
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
   };

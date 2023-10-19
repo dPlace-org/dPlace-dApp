@@ -17,24 +17,24 @@ import { useMemo, useState } from "react"
 import { FaTimes } from "react-icons/fa"
 import { DPlaceGrid__factory } from "types"
 import { useDebouncedCallback } from "use-debounce"
-import { Place } from "./Grid"
+import { Pixel } from "./Grid"
 
-interface ManagePlacesProps {
-  removePlace: (x: number, y: number) => void
-  updatedPlaces: Place[]
+interface ManagePixelsProps {
   maxSpaces: number
-  confirmClaimPlaces: () => void
-  clearUpdatedPlaces: () => void
+  updatedPixels: Pixel[]
+  removePixel: (x: number, y: number) => void
+  confirmClaimPixels: () => void
+  clearUpdatedPixels: () => void
 }
 
-export default function ManagePlaces(props: ManagePlacesProps) {
+export default function ManagePixels(props: ManagePixelsProps) {
   let gridAddress = process.env.NEXT_PUBLIC_GRID_ADDRESS
   const {
-    removePlace,
-    updatedPlaces,
-    clearUpdatedPlaces,
     maxSpaces,
-    confirmClaimPlaces,
+    updatedPixels,
+    removePixel,
+    confirmClaimPixels,
+    clearUpdatedPixels,
   } = props
   const [priceBigNumber, setPriceBigNumber] = useState<ethers.BigNumber>(
     ethers.BigNumber.from(0),
@@ -47,13 +47,13 @@ export default function ManagePlaces(props: ManagePlacesProps) {
 
   const toast = useToast()
 
-  let xs = updatedPlaces.map((place) => place.x)
-  let ys = updatedPlaces.map((place) => place.y)
+  let xs = updatedPixels.map((pixel) => pixel.x)
+  let ys = updatedPixels.map((pixel) => pixel.y)
 
   let getPrice = useDebouncedCallback(async (xs: number[], ys: number[]) => {
     setPriceLoading(true)
     try {
-      let _price = await contract.call("calculatePlacesPrice", [xs, ys])
+      let _price = await contract.call("calculatePixelsPrice", [xs, ys])
       setPrice(ethers.utils.formatEther(_price))
       setPriceBigNumber(_price)
     } catch (e) {
@@ -71,13 +71,13 @@ export default function ManagePlaces(props: ManagePlacesProps) {
       await getPrice(xs, ys)
     }
     handler()
-  }, [updatedPlaces])
+  }, [updatedPixels])
 
   return (
     <Stack bgColor="white" boxShadow="inset 0px 5px 5px rgb(0 0 0 / 28%)">
       <Stack m="1em">
         {/* <Heading mt="1em" fontSize={"1.5em"}>
-          Your Places
+          Your Pixels
         </Heading> */}
 
         <Heading
@@ -86,7 +86,7 @@ export default function ManagePlaces(props: ManagePlacesProps) {
           fontFamily="minecraft"
           letterSpacing={"1px"}
         >
-          Updated Places ({updatedPlaces.length})
+          Updated Pixels ({updatedPixels.length})
         </Heading>
         <HStack>
           <Tooltip
@@ -97,8 +97,8 @@ export default function ManagePlaces(props: ManagePlacesProps) {
               <span style={{ fontWeight: "bold" }}>Max:</span> {maxSpaces}
             </Text>
           </Tooltip>
-          {updatedPlaces.length > 0 && (
-            <Button size="sm" onClick={clearUpdatedPlaces}>
+          {updatedPixels.length > 0 && (
+            <Button size="sm" onClick={clearUpdatedPixels}>
               Clear
             </Button>
           )}
@@ -110,8 +110,8 @@ export default function ManagePlaces(props: ManagePlacesProps) {
           mt="-.5em"
           minH="105px"
         >
-          {updatedPlaces.map((place, index) => (
-            <Stack key={index} bgColor={place.color}>
+          {updatedPixels.map((pixel, index) => (
+            <Stack key={index} bgColor={pixel.color}>
               <Stack
                 h="5em"
                 w="5em"
@@ -124,13 +124,13 @@ export default function ManagePlaces(props: ManagePlacesProps) {
                   borderRadius={"1em"}
                   aria-label="remove"
                   size="sm"
-                  onClick={() => removePlace(place.x, place.y)}
+                  onClick={() => removePixel(pixel.x, pixel.y)}
                   icon={<Icon as={FaTimes} />}
                   alignSelf="flex-end"
                   marginRight="-1em"
                 />
-                <Text>{place.x}</Text>
-                <Text>{place.y}</Text>
+                <Text>{pixel.x}</Text>
+                <Text>{pixel.y}</Text>
               </Stack>
             </Stack>
           ))}
@@ -153,11 +153,11 @@ export default function ManagePlaces(props: ManagePlacesProps) {
         <Web3Button
           contractAddress={gridAddress}
           contractAbi={DPlaceGrid__factory.abi}
-          isDisabled={updatedPlaces.length === 0}
+          isDisabled={updatedPixels.length === 0}
           action={async (_contract) => {
             if (!priceBigNumber) return
-            let colors = updatedPlaces.map((place) =>
-              ethers.utils.formatBytes32String(place.color),
+            let colors = updatedPixels.map((pixel) =>
+              ethers.utils.formatBytes32String(pixel.color),
             )
             try {
               // await (
@@ -167,13 +167,13 @@ export default function ManagePlaces(props: ManagePlacesProps) {
               //     value: 0,
               //   })
               // ).wait()
-              // let tx = contract.prepare("claimPlaces", [xs, ys, colors], {
+              // let tx = contract.prepare("claimPixels", [xs, ys, colors], {
               //   value: priceBigNumber,
               // })
               // console.log((await tx.estimateGasCost()).ether)
-              await _contract.call("claimPlaces", [xs, ys, colors], {
+              await _contract.call("claimPixels", [xs, ys, colors], {
                 value: priceBigNumber,
-                // gasLimit: limit,
+                from: await signer.getAddress(),
               })
             } catch (e: any) {
               console.log(e)
@@ -186,10 +186,10 @@ export default function ManagePlaces(props: ManagePlacesProps) {
               })
               return
             }
-            confirmClaimPlaces()
+            confirmClaimPixels()
           }}
         >
-          Claim Places
+          Claim Pixels
         </Web3Button>
       </Stack>
     </Stack>
