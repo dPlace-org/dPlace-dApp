@@ -309,7 +309,6 @@ export default function Grid({ block }: { block: number }) {
   }
 
   function unHighlightPixel() {
-    console.log("here")
     if (highlightedPixel) {
       editCanvas.clearRect(0, 0, size, size)
     }
@@ -323,7 +322,7 @@ export default function Grid({ block }: { block: number }) {
   }
 
   function disableDrawPixels(event) {
-    if (tool == "remove") unHighlightPixel()
+    unHighlightPixel()
     if (tool == "move") return
     setDrawingPixels(false)
   }
@@ -540,6 +539,7 @@ export default function Grid({ block }: { block: number }) {
               onMouseDown={enableDrawPixels}
               onTouchStart={enableDrawPixels}
               onMouseLeave={disableDrawPixels}
+              onMouseOutCapture={disableDrawPixels}
               onMouseUp={disableDrawPixels}
               onTouchEnd={disableDrawPixels}
               onTouchCancel={disableDrawPixels}
