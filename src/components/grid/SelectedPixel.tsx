@@ -53,7 +53,7 @@ export default function SelectedPixel({
   return (
     <Stack
       mt="1em"
-      pixelContent={"center"}
+      placeContent={"center"}
       bgColor="white"
       boxShadow="0 10px 10px rgb(0 0 0 / 0.2)"
     >
