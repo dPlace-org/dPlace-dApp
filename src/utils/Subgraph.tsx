@@ -51,7 +51,7 @@ export async function getPixel(
   return await client
     .query(q, { x, y })
     .toPromise()
-    .then((result) => result.data.places[0])
+    .then((result) => result.data.pixels[0])
     .catch((err) => {
       return null
     })

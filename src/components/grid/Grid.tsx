@@ -57,15 +57,20 @@ export default function Grid({ block }: { block: number }) {
 
   const transformComponentRef = useRef<ReactZoomPanPinchRef | null>(null)
   const updateCanvasRef = useRef<HTMLCanvasElement>(null)
+  const editCanvasRef = useRef<HTMLCanvasElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const { isOpen, onOpen, onClose } = useDisclosure()
   const [canvas, setCanvas] = useState<CanvasRenderingContext2D | null>(null)
   const [updateCanvas, setUpdateCanvas] =
     useState<CanvasRenderingContext2D | null>(null)
+  const [editCanvas, setEditCanvas] = useState<CanvasRenderingContext2D | null>(
+    null,
+  )
   const [size, setSize] = useState(0)
   const [newPixels, setNewPixels] = useState<Pixel[]>([])
   const [updatedPixels, setUpdatedPixels] = useState<Pixel[]>([])
   const [selectedPixel, setSelectedPixel] = useState<Pixel>()
+  const [highlightedPixel, setHighlightedPixel] = useState<Pixel>()
   const [currentBlock, setCurrentBlock] = useState<number>(block)
   const { getPixels, loading } = useGetPixels()
   const [tool, setTool] = useState("move")
@@ -112,11 +117,17 @@ export default function Grid({ block }: { block: number }) {
           setTimeout(() => addNewPixel(pixels[i]), 1)
         }
       }
-      if (canvasRef.current && updateCanvasRef.current && size > 0) {
+      if (
+        canvasRef.current &&
+        updateCanvasRef.current &&
+        editCanvasRef.current &&
+        size > 0
+      ) {
         let _canvas = canvasRef.current.getContext("2d")
         _canvas.shadowBlur = 0
         setCanvas(_canvas)
         setUpdateCanvas(updateCanvasRef.current.getContext("2d"))
+        setEditCanvas(editCanvasRef.current.getContext("2d"))
         centerCanvas()
       }
     }
@@ -258,7 +269,7 @@ export default function Grid({ block }: { block: number }) {
   }
 
   function drawPixels(event) {
-    if (!drawingPixels) return
+    if (!updateCanvas) return
     const bounding = updateCanvas.canvas.getBoundingClientRect()
     let scale = transformComponentRef.current.instance.transformState.scale
     let x
@@ -274,11 +285,34 @@ export default function Grid({ block }: { block: number }) {
       x = Math.floor((event.clientX - bounding.left) / scale / pixelSize)
       y = Math.floor((event.clientY - bounding.top) / scale / pixelSize)
     }
+    if (!drawingPixels) {
+      setTimeout(() => highlightPixel({ x, y }), 10)
+      return
+    }
     if (tool === "update") {
       updatePixel(x, y)
     } else if (tool === "remove") {
       removeUpdatedPixel(x, y)
     }
+  }
+
+  function highlightPixel(pixel: Pixel) {
+    if (!editCanvas) return
+    let { x, y } = pixel
+    if (highlightedPixel?.x === x && highlightedPixel?.y === y) return
+    if (highlightedPixel) {
+      editCanvas.clearRect(0, 0, size, size)
+    }
+    editCanvas.fillStyle = tool == "update" ? color : "rgba(0, 0, 0, 0.2)"
+    editCanvas.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize)
+    setHighlightedPixel({ x, y })
+  }
+
+  function unHighlightPixel() {
+    if (highlightedPixel) {
+      editCanvas.clearRect(0, 0, size, size)
+    }
+    setHighlightedPixel(undefined)
   }
 
   function enableDrawPixels(event) {
@@ -501,6 +535,31 @@ export default function Grid({ block }: { block: number }) {
               onMouseUp={disableDrawPixels}
               onTouchEnd={disableDrawPixels}
               onTouchCancel={disableDrawPixels}
+            />
+            <canvas
+              ref={editCanvasRef}
+              width={size}
+              height={size}
+              onClick={clickPixel}
+              onMouseMoveCapture={drawPixels}
+              onTouchMoveCapture={drawPixels}
+              onMouseDown={enableDrawPixels}
+              onTouchStart={enableDrawPixels}
+              onMouseLeave={(e) => {
+                disableDrawPixels(e)
+                unHighlightPixel()
+              }}
+              onMouseUp={disableDrawPixels}
+              onTouchEnd={disableDrawPixels}
+              onTouchCancel={disableDrawPixels}
+              style={{
+                width: `${size}px`,
+                height: `${size}px`,
+                imageRendering: "pixelated",
+                cursor: tool === "move" ? "pointer" : "crosshair",
+                position: "absolute",
+                zIndex: 1000000,
+              }}
             />
           </TransformComponent>
         </TransformWrapper>
