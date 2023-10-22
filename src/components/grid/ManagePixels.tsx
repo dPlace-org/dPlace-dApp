@@ -154,27 +154,35 @@ export default function ManagePixels(props: ManagePixelsProps) {
           contractAddress={gridAddress}
           contractAbi={DPlaceGrid__factory.abi}
           isDisabled={updatedPixels.length === 0}
+          style={{
+            fontFamily: "minecraft",
+            letterSpacing: "1px",
+            fontSize: "18px",
+            backgroundColor: "#FF4500",
+            color: "#fff",
+          }}
           action={async (_contract) => {
             if (!priceBigNumber) return
             let colors = updatedPixels.map((pixel) =>
               ethers.utils.formatBytes32String(pixel.color),
             )
             try {
-              // await (
-              //   await signer.sendTransaction({
-              //     to: ethers.constants.AddressZero,
-              //     data: "0x",
-              //     value: 0,
-              //   })
-              // ).wait()
-              // let tx = contract.prepare("claimPixels", [xs, ys, colors], {
-              //   value: priceBigNumber,
-              // })
-              // console.log((await tx.estimateGasCost()).ether)
-              await _contract.call("claimPixels", [xs, ys, colors], {
-                value: priceBigNumber,
-                from: await signer.getAddress(),
-              })
+              let grid = DPlaceGrid__factory.connect(gridAddress, signer)
+              let newestPrice = await grid.calculatePixelsPrice(xs, ys)
+              let gasPrice = await grid.estimateGas.claimPixels(
+                xs,
+                ys,
+                colors,
+                {
+                  value: newestPrice,
+                },
+              )
+              await (
+                await grid.claimPixels(xs, ys, colors, {
+                  value: newestPrice,
+                  gasPrice: gasPrice,
+                })
+              ).wait()
             } catch (e: any) {
               console.log(e)
               toast({

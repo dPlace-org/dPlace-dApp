@@ -16,6 +16,7 @@ import {
   useBreakpointValue,
   useDisclosure,
   useToast,
+  UseToastOptions,
 } from "@chakra-ui/react"
 import { useEffect, useRef, useState } from "react"
 import { HexColorPicker } from "react-colorful"
@@ -31,12 +32,14 @@ import { useContract, useContractEvents, useSigner } from "@thirdweb-dev/react"
 import { ethers } from "ethers"
 import { FaPalette } from "react-icons/fa"
 import { LiaHandPointer } from "react-icons/lia"
+import { useLocalStorage } from "react-use"
 import {
   ReactZoomPanPinchRef,
   TransformComponent,
   TransformWrapper,
 } from "react-zoom-pan-pinch"
 import { DPlaceGrid__factory } from "types"
+import { useDebouncedCallback } from "use-debounce"
 import ManagePixels from "./ManagePixels"
 import SelectedPixel from "./SelectedPixel"
 
@@ -51,7 +54,7 @@ export interface Pixel {
 
 export default function Grid({ block }: { block: number }) {
   let gridAddress = process.env.NEXT_PUBLIC_GRID_ADDRESS
-  const maxSpaces = 100
+  const maxSpaces = 200
   const pixelSize = 4
   const currentGridImageUrl = "/assets/images/grid-0.png"
 
@@ -59,7 +62,16 @@ export default function Grid({ block }: { block: number }) {
   const updateCanvasRef = useRef<HTMLCanvasElement>(null)
   const editCanvasRef = useRef<HTMLCanvasElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const { isOpen, onOpen, onClose } = useDisclosure()
+  const {
+    isOpen: isPixelsOpen,
+    onOpen: onPixelsOpen,
+    onClose: onPixelsClose,
+  } = useDisclosure()
+  const {
+    isOpen: isStencilOpen,
+    onOpen: onStencilOpen,
+    onClose: onStencilClose,
+  } = useDisclosure()
   const [canvas, setCanvas] = useState<CanvasRenderingContext2D | null>(null)
   const [updateCanvas, setUpdateCanvas] =
     useState<CanvasRenderingContext2D | null>(null)
@@ -68,9 +80,11 @@ export default function Grid({ block }: { block: number }) {
   )
   const [size, setSize] = useState(0)
   const [newPixels, setNewPixels] = useState<Pixel[]>([])
+  const [storagePixels, saveStoragePixels] = useLocalStorage("pixels", [])
   const [updatedPixels, setUpdatedPixels] = useState<Pixel[]>([])
   const [selectedPixel, setSelectedPixel] = useState<Pixel>()
   const [highlightedPixel, setHighlightedPixel] = useState<Pixel>()
+  const [checkedPixel, setCheckedPixel] = useState<Pixel>()
   const [currentBlock, setCurrentBlock] = useState<number>(block)
   const { getPixels, loading } = useGetPixels()
   const [tool, setTool] = useState("move")
@@ -82,6 +96,10 @@ export default function Grid({ block }: { block: number }) {
   const isMobile = useBreakpointValue({ base: true, md: false })
   const signer = useSigner()
   const toast = useToast()
+
+  let debounceToast = useDebouncedCallback(async (options: UseToastOptions) => {
+    toast(options)
+  }, 100)
 
   const { data, isLoading, error } = useContractEvents(
     contract,
@@ -96,9 +114,30 @@ export default function Grid({ block }: { block: number }) {
     },
   )
 
-  // load grid image and set size
   useEffect(() => {
-    if (!isMobile) onOpen()
+    if (storagePixels && saveStoragePixels && updateCanvas) {
+      setUpdatedPixels(storagePixels)
+      for (let i = 0; i < storagePixels.length; i++) {
+        let pixel = storagePixels[i]
+        setTimeout(() => {
+          updateCanvas.fillStyle = pixel.color
+          updateCanvas.fillRect(
+            pixel.x * pixelSize,
+            pixel.y * pixelSize,
+            pixelSize,
+            pixelSize,
+          )
+        }, 10)
+      }
+    }
+  }, [saveStoragePixels, updateCanvas])
+
+  // open drawers on desktop load
+  useEffect(() => {
+    if (!isMobile) {
+      onPixelsOpen()
+      onStencilOpen()
+    }
   }, [isMobile])
 
   // draw canvas
@@ -128,7 +167,7 @@ export default function Grid({ block }: { block: number }) {
         setCanvas(_canvas)
         setUpdateCanvas(updateCanvasRef.current.getContext("2d"))
         setEditCanvas(editCanvasRef.current.getContext("2d"))
-        centerCanvas()
+        centerCanvasOnPixel({ x: 500, y: 500 }, 5)
       }
     }
   }, [size, canvas])
@@ -160,6 +199,11 @@ export default function Grid({ block }: { block: number }) {
     }
   }, [tool])
 
+  function saveUpdatePixels(pixels: Pixel[]) {
+    setUpdatedPixels([...pixels])
+    saveStoragePixels([...pixels])
+  }
+
   function addNewPixel(pixel: Pixel) {
     if (!canvas) return
 
@@ -189,7 +233,8 @@ export default function Grid({ block }: { block: number }) {
     }
   }
 
-  function updatePixel(x, y) {
+  function updatePixel(x, y, _color) {
+    setCheckedPixel({ x, y })
     if (!signer) {
       // open modal
     }
@@ -199,19 +244,25 @@ export default function Grid({ block }: { block: number }) {
     // if pixel already being updated, update the color
     if (index !== -1) {
       let _updatedPixels = updatedPixels
-      _updatedPixels[index].color = color
-      setUpdatedPixels([..._updatedPixels])
+      _updatedPixels[index].color = _color
+      saveUpdatePixels(_updatedPixels)
       updateCanvas.clearRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize)
-      updateCanvas.fillStyle = color
+      updateCanvas.fillStyle = _color
       updateCanvas.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize)
       return
     }
     if (updatedPixels.length == maxSpaces) {
-      return // TODO: SHOW A TOAST?
+      // toast.closeAll()
+      debounceToast({
+        status: "warning",
+        description:
+          "You have reached the maximum number of pixels to update per transaction.",
+      })
+      return
     }
-    updateCanvas.fillStyle = color
+    updateCanvas.fillStyle = _color
     updateCanvas.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize)
-    setUpdatedPixels([...updatedPixels, { x, y, color }])
+    saveUpdatePixels([...updatedPixels, { x, y, color: _color }])
   }
 
   function confirmClaimPixels() {
@@ -221,10 +272,11 @@ export default function Grid({ block }: { block: number }) {
       status: "success",
       isClosable: true,
     })
-    setUpdatedPixels([])
+    saveUpdatePixels([])
   }
 
   function removeUpdatedPixel(x: number, y: number) {
+    setCheckedPixel({ x, y })
     updateCanvas.clearRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize)
 
     let index = updatedPixels.findIndex(
@@ -233,19 +285,19 @@ export default function Grid({ block }: { block: number }) {
     if (!updateCanvas || index == -1) {
       return
     }
-    setUpdatedPixels([
+    saveUpdatePixels([
       ...updatedPixels.filter((pixel) => !(pixel.x === x && pixel.y === y)),
     ])
   }
 
   function clearUpdatedPixels() {
     if (!updateCanvas) return
-    setUpdatedPixels([])
+    saveUpdatePixels([])
     updateCanvas.clearRect(0, 0, size, size)
   }
 
   function selectPixel(x, y) {
-    if (!isOpen) onOpen()
+    if (!isPixelsOpen) onPixelsOpen()
     setSelectedPixel({ x, y })
   }
 
@@ -262,12 +314,13 @@ export default function Grid({ block }: { block: number }) {
     if (tool === "select") {
       selectPixel(x, y)
     } else if (tool === "update") {
-      updatePixel(x, y)
+      updatePixel(x, y, color)
     } else if (tool === "remove") {
       removeUpdatedPixel(x, y)
     }
   }
 
+  // TODO try and reduce the amount of times this function is being called per mouse move (a lot of wasted cycles)
   function drawPixels(event) {
     if (!updateCanvas) return
     const bounding = updateCanvas.canvas.getBoundingClientRect()
@@ -285,12 +338,15 @@ export default function Grid({ block }: { block: number }) {
       x = Math.floor((event.clientX - bounding.left) / scale / pixelSize)
       y = Math.floor((event.clientY - bounding.top) / scale / pixelSize)
     }
+
+    if (checkedPixel && x == checkedPixel.x && y == checkedPixel.y) return
+
     if (!drawingPixels) {
       setTimeout(() => highlightPixel({ x, y }), 10)
       return
     }
     if (tool === "update") {
-      updatePixel(x, y)
+      updatePixel(x, y, color)
     } else if (tool === "remove") {
       removeUpdatedPixel(x, y)
     }
@@ -331,20 +387,18 @@ export default function Grid({ block }: { block: number }) {
     setShowColorPicker(!showColorPicker)
   }
 
-  function centerCanvas() {
+  function centerCanvasOnPixel(pixel: Pixel, scale: number) {
     if (transformComponentRef.current) {
       let prevTransformDisabled = transformDisabled
       setTransformDisabled(false)
       const { setTransform } = transformComponentRef.current
-      let scale = 15
       setTimeout(() => {
-        let offset = 500
-        if (isMobile) offset = -100
-        setTransform(
-          (((size - pixelSize * scale) * -1) / 2) * scale + offset,
-          (((size - pixelSize * scale) * -1) / 2) * scale,
-          scale,
-        )
+        const { innerWidth: width, innerHeight: height } = window
+        let headerOffset = 100
+        let xTrans = pixel.x * scale * pixelSize * -1 + width / 2
+        let yTrans =
+          pixel.y * scale * pixelSize * -1 + (height / 2 - headerOffset)
+        setTransform(xTrans, yTrans, scale)
         setTransformDisabled(prevTransformDisabled)
       }, 100)
     }
@@ -354,8 +408,8 @@ export default function Grid({ block }: { block: number }) {
     <HStack
       mt="1em"
       pos="absolute"
-      left={isOpen ? "21em" : "1em"}
-      top={isOpen ? "initial" : "88px"}
+      left={isPixelsOpen ? "21em" : "1em"}
+      top={isPixelsOpen ? "initial" : "88px"}
       alignItems="flex-start"
       gap="1em"
     >
@@ -365,13 +419,13 @@ export default function Grid({ block }: { block: number }) {
             aria-label="close"
             icon={<Icon as={GiHamburgerMenu} />}
             onClick={
-              isOpen
+              isPixelsOpen
                 ? () => {
                     setSelectedPixel(undefined)
-                    onClose()
+                    onPixelsClose()
                   }
                 : () => {
-                    onOpen()
+                    onPixelsOpen()
                   }
             }
             _hover={{ backgroundColor: "#FF4500", color: "white" }}
@@ -382,7 +436,7 @@ export default function Grid({ block }: { block: number }) {
             aria-label="center"
             icon={<Icon as={PiCrosshairBold} />}
             onClick={() => {
-              centerCanvas()
+              centerCanvasOnPixel({ x: 500, y: 500 }, 5)
               setShowColorPicker(false)
             }}
             _hover={{ backgroundColor: "#FF4500", color: "white" }}
@@ -464,12 +518,12 @@ export default function Grid({ block }: { block: number }) {
             />
           </Tooltip>
         )}
-        {!isOpen && updatedPixels.length > 0 && (
+        {!isPixelsOpen && updatedPixels.length > 0 && (
           <Tooltip label="Save Updates" placement="right">
             <IconButton
               aria-label="save"
               icon={<Icon as={BiSave} />}
-              onClick={onOpen}
+              onClick={onPixelsOpen}
               _hover={{ backgroundColor: "#FF4500", color: "white" }}
             />
           </Tooltip>
@@ -497,9 +551,8 @@ export default function Grid({ block }: { block: number }) {
           maxScale={20}
           doubleClick={{ disabled: true }}
           centerOnInit={true}
-          panning={{ velocityDisabled: true }}
+          panning={{ velocityDisabled: true, disabled: transformDisabled }}
           wheel={{ step: 0.001, smoothStep: 0.005 }}
-          disabled={transformDisabled}
         >
           <TransformComponent>
             <canvas
@@ -565,11 +618,11 @@ export default function Grid({ block }: { block: number }) {
           <Spinner />
         </Center>
       )}
-      {!isOpen && controls}
+      {!isPixelsOpen && controls}
       <Drawer
         placement={"left"}
-        onClose={onClose}
-        isOpen={isOpen}
+        onClose={onPixelsClose}
+        isOpen={isPixelsOpen}
         closeOnOverlayClick={false}
       >
         <DrawerOverlay display="none" />
@@ -599,6 +652,19 @@ export default function Grid({ block }: { block: number }) {
           </DrawerBody>
         </DrawerContent>
       </Drawer>
+      {/* <Drawer
+        placement={"right"}
+        onClose={onStencilClose}
+        isOpen={isStencilOpen}
+        closeOnOverlayClick={false}
+      >
+        <DrawerOverlay display="none" />
+        <DrawerContent containerProps={{ width: "0" }}>
+          <DrawerBody bgColor="#FF4500" mt="5.5em" p="1em" pt="0 !important">
+            <StencilManager />
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer> */}
     </Stack>
   )
 }

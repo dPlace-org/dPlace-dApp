@@ -94,7 +94,7 @@ export default function SelectedPixel({
           <Stack m="1em">
             <HStack justifyContent={"space-between"} alignItems={"flex-end"}>
               <Stack maxW="136px">
-                <Heading size="md">Price Claimed:</Heading>
+                <Heading size="md">Price:</Heading>
                 <Heading
                   size="lg"
                   color="#FF4500"
