@@ -40,6 +40,7 @@ import {
 } from "react-zoom-pan-pinch"
 import { DPlaceGrid__factory } from "types"
 import { useDebouncedCallback } from "use-debounce"
+import { getColorOrDefault, getTextForColor } from "../../utils/utils"
 import ManagePixels from "./ManagePixels"
 import SelectedPixel from "./SelectedPixel"
 
@@ -86,7 +87,8 @@ export default function Grid({ block }: { block: number }) {
   const [highlightedPixel, setHighlightedPixel] = useState<Pixel>()
   const [checkedPixel, setCheckedPixel] = useState<Pixel>()
   const [currentBlock, setCurrentBlock] = useState<number>(block)
-  const { getPixels, loading } = useGetPixels()
+  const { getPixels, loading: subgraphPixelsLoading } = useGetPixels()
+  const [_loading, setLoading] = useState(false)
   const [tool, setTool] = useState("move")
   const [showColorPicker, setShowColorPicker] = useState(false)
   const [transformDisabled, setTransformDisabled] = useState(false)
@@ -97,22 +99,20 @@ export default function Grid({ block }: { block: number }) {
   const signer = useSigner()
   const toast = useToast()
 
+  let loading = subgraphPixelsLoading || _loading
+
   let debounceToast = useDebouncedCallback(async (options: UseToastOptions) => {
     toast(options)
   }, 100)
 
-  const { data, isLoading, error } = useContractEvents(
-    contract,
-    "PixelChanged",
-    {
-      queryFilter: {
-        order: "desc",
-        fromBlock: currentBlock,
-        toBlock: currentBlock + 100000,
-      },
-      subscribe: true,
+  const { data } = useContractEvents(contract, "PixelChanged", {
+    queryFilter: {
+      order: "desc",
+      fromBlock: currentBlock,
+      toBlock: currentBlock + 100000,
     },
-  )
+    subscribe: true,
+  })
 
   useEffect(() => {
     if (storagePixels && saveStoragePixels && updateCanvas) {
@@ -320,7 +320,6 @@ export default function Grid({ block }: { block: number }) {
     }
   }
 
-  // TODO try and reduce the amount of times this function is being called per mouse move (a lot of wasted cycles)
   function drawPixels(event) {
     if (!updateCanvas) return
     const bounding = updateCanvas.canvas.getBoundingClientRect()
@@ -472,13 +471,13 @@ export default function Grid({ block }: { block: number }) {
           <IconButton
             aria-label="update"
             icon={<Icon as={LuPaintbrush2} />}
-            bgColor={tool === "update" ? "#FF4500" : ""}
-            color={tool === "update" ? "white" : ""}
+            bgColor={tool === "update" ? color : ""}
+            color={tool === "update" ? getTextForColor(color) : ""}
             onClick={() => {
               setTool("update")
               setShowColorPicker(false)
             }}
-            _hover={{ backgroundColor: "#FF4500", color: "white" }}
+            _hover={{ backgroundColor: color, color: getTextForColor(color) }}
           />
         </Tooltip>
         {(tool == "update" || tool == "remove") && (
@@ -534,7 +533,9 @@ export default function Grid({ block }: { block: number }) {
           <HexColorPicker color={color} onChange={setColor} />
           <Editable value={color}>
             <EditablePreview />
-            <EditableInput onChange={(e) => setColor(e.target.value)} />
+            <EditableInput
+              onChange={(e) => setColor(getColorOrDefault(e.target.value))}
+            />
           </Editable>
         </Stack>
       )}
@@ -638,9 +639,9 @@ export default function Grid({ block }: { block: number }) {
               <ManagePixels
                 confirmClaimPixels={confirmClaimPixels}
                 removePixel={removeUpdatedPixel}
-                clearUpdatedPixels={clearUpdatedPixels}
                 updatedPixels={updatedPixels}
                 maxSpaces={maxSpaces}
+                setLoading={setLoading}
               />
               {selectedPixel && (
                 <SelectedPixel

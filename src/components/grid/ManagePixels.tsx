@@ -1,6 +1,6 @@
 import { useCalculatePriceUSD } from "@/utils/Price"
+import { getTextForColor } from "@/utils/utils"
 import {
-  Button,
   Heading,
   HStack,
   Icon,
@@ -24,7 +24,7 @@ interface ManagePixelsProps {
   updatedPixels: Pixel[]
   removePixel: (x: number, y: number) => void
   confirmClaimPixels: () => void
-  clearUpdatedPixels: () => void
+  setLoading: (value: boolean) => void
 }
 
 export default function ManagePixels(props: ManagePixelsProps) {
@@ -34,7 +34,7 @@ export default function ManagePixels(props: ManagePixelsProps) {
     updatedPixels,
     removePixel,
     confirmClaimPixels,
-    clearUpdatedPixels,
+    setLoading,
   } = props
   const [priceBigNumber, setPriceBigNumber] = useState<ethers.BigNumber>(
     ethers.BigNumber.from(0),
@@ -88,20 +88,15 @@ export default function ManagePixels(props: ManagePixelsProps) {
         >
           Updated Pixels ({updatedPixels.length})
         </Heading>
-        <HStack>
+        <HStack mt="-10px">
           <Tooltip
             label="This is to reduce the chances of transaction failure"
             placement="right"
           >
-            <Text w="fit-content" color="gray" mt="0">
+            <Text fontFamily={"minecraft"} w="fit-content" color="gray" mt="0">
               <span style={{ fontWeight: "bold" }}>Max:</span> {maxSpaces}
             </Text>
           </Tooltip>
-          {updatedPixels.length > 0 && (
-            <Button size="sm" onClick={clearUpdatedPixels}>
-              Clear
-            </Button>
-          )}
         </HStack>
         <HStack
           whiteSpace={"nowrap"}
@@ -110,39 +105,79 @@ export default function ManagePixels(props: ManagePixelsProps) {
           mt="-.5em"
           minH="105px"
         >
-          {updatedPixels.map((pixel, index) => (
-            <Stack key={index} bgColor={pixel.color}>
+          {updatedPixels.length == 0 ? (
+            <>
               <Stack
                 h="5em"
                 w="5em"
-                gap="0"
-                alignItems={"center"}
-                justifyContent={"center"}
+                bgColor={"lightGray"}
+                justifyContent="center"
               >
-                <IconButton
-                  mt="-2.5em"
-                  borderRadius={"1em"}
-                  aria-label="remove"
-                  size="sm"
-                  onClick={() => removePixel(pixel.x, pixel.y)}
-                  icon={<Icon as={FaTimes} />}
-                  alignSelf="flex-end"
-                  marginRight="-1em"
-                />
-                <Text>{pixel.x}</Text>
-                <Text>{pixel.y}</Text>
+                <Stack gap="0" alignItems={"center"} justifyContent={"center"}>
+                  <Text fontFamily={"minecraft"}>Use</Text>
+                </Stack>
               </Stack>
-            </Stack>
-          ))}
+              <Stack
+                h="5em"
+                w="5em"
+                bgColor={"lightGray"}
+                opacity=".5"
+                justifyContent="center"
+              >
+                <Stack gap="0" alignItems={"center"} justifyContent={"center"}>
+                  <Text fontFamily={"minecraft"}>The</Text>
+                </Stack>
+              </Stack>
+              <Stack
+                h="5em"
+                w="5em"
+                bgColor={"lightGray"}
+                opacity=".25"
+                justifyContent="center"
+              >
+                <Stack gap="0" alignItems={"center"} justifyContent={"center"}>
+                  <Text fontFamily={"minecraft"}>Brush</Text>
+                </Stack>
+              </Stack>
+            </>
+          ) : (
+            updatedPixels.map((pixel, index) => (
+              <Stack
+                key={index}
+                bgColor={pixel.color}
+                color={getTextForColor(pixel.color)}
+              >
+                <Stack
+                  h="5em"
+                  w="5em"
+                  gap="0"
+                  alignItems={"center"}
+                  justifyContent={"center"}
+                >
+                  <IconButton
+                    mt="-2.5em"
+                    borderRadius={"1em"}
+                    aria-label="remove"
+                    size="sm"
+                    onClick={() => removePixel(pixel.x, pixel.y)}
+                    icon={<Icon as={FaTimes} />}
+                    alignSelf="flex-end"
+                    marginRight="-1em"
+                  />
+                  <Text fontFamily={"minecraft"}>{pixel.x}</Text>
+                  <Text fontFamily={"minecraft"}>{pixel.y}</Text>
+                </Stack>
+              </Stack>
+            ))
+          )}
         </HStack>
-
-        <Heading mt="1em" fontSize={"1.5em"}>
-          Total:
+        <Heading fontSize={"1.5em"}>
+          <span style={{ fontFamily: "minecraft" }}>Total:</span>
           {priceLoading ? (
             <Spinner />
           ) : (
             <>
-              <span style={{ fontWeight: "initial" }}>Ξ{price}</span>
+              <span style={{ fontWeight: "initial" }}> Ξ{price}</span>
               <span style={{ fontSize: "15px", color: "gray" }}>
                 {" "}
                 (${usdPrice})
@@ -167,6 +202,7 @@ export default function ManagePixels(props: ManagePixelsProps) {
               ethers.utils.formatBytes32String(pixel.color),
             )
             try {
+              setLoading(true)
               let grid = DPlaceGrid__factory.connect(gridAddress, signer)
               let newestPrice = await grid.calculatePixelsPrice(xs, ys)
               let gasPrice = await grid.estimateGas.claimPixels(
@@ -183,8 +219,10 @@ export default function ManagePixels(props: ManagePixelsProps) {
                   gasPrice: gasPrice,
                 })
               ).wait()
+              setLoading(false)
             } catch (e: any) {
               console.log(e)
+              setLoading(false)
               toast({
                 title: `Transaction Error!`,
                 description:
