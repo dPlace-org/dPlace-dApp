@@ -14,7 +14,7 @@ import {
 import { useContract, useSigner, Web3Button } from "@thirdweb-dev/react"
 import { ethers } from "ethers"
 import { useMemo, useState } from "react"
-import { FaTimes } from "react-icons/fa"
+import { FaQuestionCircle, FaTimes } from "react-icons/fa"
 import { DPlaceGrid__factory } from "types"
 import { useDebouncedCallback } from "use-debounce"
 import { Pixel } from "./Grid"
@@ -90,12 +90,20 @@ export default function ManagePixels(props: ManagePixelsProps) {
         </Heading>
         <HStack mt="-10px">
           <Tooltip
-            label="This is to reduce the chances of transaction failure"
+            label="The more pixels you try to claim the higher the chance your transaction will fail."
             placement="right"
           >
-            <Text fontFamily={"minecraft"} w="fit-content" color="gray" mt="0">
-              <span style={{ fontWeight: "bold" }}>Max:</span> {maxSpaces}
-            </Text>
+            <HStack>
+              <Text
+                fontFamily={"minecraft"}
+                w="fit-content"
+                color="gray"
+                mt="0"
+              >
+                <span style={{ fontWeight: "bold" }}>Max:</span> {maxSpaces}
+              </Text>
+              <Icon mt="-5px" as={FaQuestionCircle} color="gray" />
+            </HStack>
           </Tooltip>
         </HStack>
         <HStack
@@ -193,8 +201,8 @@ export default function ManagePixels(props: ManagePixelsProps) {
             fontFamily: "minecraft",
             letterSpacing: "1px",
             fontSize: "18px",
-            backgroundColor: "#FF4500",
-            color: "#fff",
+            backgroundColor: updatedPixels.length === 0 ? "" : "#FF4500",
+            color: updatedPixels.length === 0 ? "gray" : "white",
           }}
           action={async (_contract) => {
             if (!priceBigNumber) return
