@@ -38,6 +38,7 @@ import { useRouter } from "next/router"
 import { FaPalette } from "react-icons/fa"
 import { useLocalStorage } from "react-use"
 import {
+  getMatrixTransformStyles,
   ReactZoomPanPinchRef,
   TransformComponent,
   TransformWrapper,
@@ -62,7 +63,7 @@ export interface Pixel {
 export default function Grid({ block }: { block: number }) {
   let gridAddress = process.env.NEXT_PUBLIC_GRID_ADDRESS
   const maxSpaces = 200
-  const pixelSize = 1
+  const pixelSize = 2
   const currentGridImageUrl = "/assets/images/grid-0.png"
 
   const transformComponentRef = useRef<ReactZoomPanPinchRef | null>(null)
@@ -604,6 +605,7 @@ export default function Grid({ block }: { block: number }) {
       centerOnInit={true}
       panning={{ velocityDisabled: true, disabled: transformDisabled }}
       wheel={{ step: 0.001, smoothStep: 0.005 }}
+      customTransform={getMatrixTransformStyles}
     >
       {({ instance }) => {
         return (
