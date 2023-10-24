@@ -1,27 +1,42 @@
-import { Button, Heading, Progress, Stack } from "@chakra-ui/react"
-import { useSigner, useStorage, useStorageUpload } from "@thirdweb-dev/react"
-import { useState } from "react"
-import { FileUploader } from "react-drag-drop-files"
+import { getScaleForWidth } from "@/utils/utils"
+import {
+  Button,
+  Divider,
+  FormControl,
+  FormLabel,
+  Heading,
+  HStack,
+  Image as ChakraImage,
+  Input,
+  Link,
+  Progress,
+  Stack,
+} from "@chakra-ui/react"
+import { useStorageUpload } from "@thirdweb-dev/react"
+import { Field, Form, Formik } from "formik"
+import NextLink from "next/link"
+import { useRouter } from "next/router"
+import { useEffect, useState } from "react"
 import { useLocalStorage } from "react-use"
+import { Pixel } from "./Grid"
 
-const fileTypes = ["PNG"]
+const defaultWidth = 100
 
-export default function StencilManager() {
-  const startingX = 0
-  const startingY = 0
-  const pixelWidth = 10
-
-  const [file, setFile] = useState<File>(null)
+// pass stencilCanvas ref to this component
+export default function StencilManager({
+  centerOn,
+  stencilCanvas,
+}: {
+  centerOn: (pixel: Pixel, scale: number) => void
+  stencilCanvas: CanvasRenderingContext2D | null
+}) {
+  const router = useRouter()
   const [progress, setProgress] = useState(0)
+  const [addingStencil, setAddingStencil] = useState(false)
+  const [file, setFile] = useState<File>(null)
+  const [previewStencil, setPreviewStencil] = useState(null)
   const [callerStencils, setCallerStencils] = useState([])
-  const [storagePixels, saveStoragePixels] = useLocalStorage("stencils", [])
-  const signer = useSigner()
-
-  const handleChange = (file) => {
-    setFile(file)
-  }
-
-  const storage = useStorage()
+  const [storageStencils, saveStorageStencils] = useLocalStorage("stencils", [])
 
   const { mutateAsync: upload } = useStorageUpload({
     onProgress: ({ progress, total }) => {
@@ -33,76 +48,350 @@ export default function StencilManager() {
     uploadWithGatewayUrl: true,
   })
 
-  const handleUpload = async () => {
-    // TODO: save IPFS url to local storage
-    let newFileName =
-      (await signer.getAddress()) +
-      `${"/"}` +
-      startingX +
-      "-" +
-      startingY +
-      "-" +
-      pixelWidth
-    let newFile = new File([file], newFileName + ".png", {
-      type: file.type,
-    })
-    console.log(newFile)
-    let test = await upload({ data: [newFile] })
-    console.log(test)
+  const uploadStencil = async (
+    file: File,
+    startingX: number,
+    startingY: number,
+    imageWidth: number,
+  ) => {
+    if (!file) return
+    try {
+      let substring = file.name.split(".")
+      let type = substring[substring.length - 1].toUpperCase()
+      let newFileName = startingX + "-" + startingY + "-" + imageWidth
+      let newFile = new File([file], newFileName + "." + type, {
+        type: file.type,
+      })
+
+      let ipfsUpload = await upload({ data: [newFile] })
+      saveStorageStencils([
+        ...storageStencils,
+        ipfsUpload[0].replace("https://", ""),
+      ])
+    } catch (e) {
+      console.log(e)
+    }
   }
+
+  const handleAddingStencil = () => {
+    stencilCanvas.clearRect(0, 0, 1000, 1000)
+    setAddingStencil(true)
+  }
+
+  const handleNewStencilPicked = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let image = e.currentTarget.files[0]
+    setFile(image)
+    if (!image) {
+      if (stencilCanvas) {
+        stencilCanvas.clearRect(
+          0,
+          0,
+          stencilCanvas.canvas.width,
+          stencilCanvas.canvas.height,
+        )
+      }
+      return
+    }
+
+    const reader = new FileReader()
+
+    reader.onloadend = () => {
+      setPreviewStencil(reader.result)
+    }
+
+    reader.readAsDataURL(image)
+  }
+
+  const handleStencilMoved = (
+    startingX: number,
+    startingY: number,
+    imageWidth: number,
+  ) => {
+    if (!stencilCanvas || !previewStencil) return
+    var stencilImage = new Image()
+    stencilImage.src = previewStencil
+    stencilImage.onload = () => {
+      stencilCanvas.clearRect(
+        0,
+        0,
+        stencilCanvas.canvas.width,
+        stencilCanvas.canvas.height,
+      )
+      let sizeRatio = imageWidth / stencilImage.width
+      stencilCanvas.drawImage(
+        stencilImage,
+        startingX,
+        startingY,
+        imageWidth,
+        stencilImage.height * sizeRatio,
+      )
+    }
+  }
+
+  useEffect(() => {
+    if (!stencilCanvas) return
+    if (previewStencil) {
+      var stencilImage = new Image()
+      stencilImage.src = previewStencil
+      stencilImage.onload = () => {
+        stencilCanvas.clearRect(
+          0,
+          0,
+          stencilCanvas.canvas.width,
+          stencilCanvas.canvas.height,
+        )
+        let sizeRatio = defaultWidth / stencilImage.width
+        stencilCanvas.drawImage(
+          stencilImage,
+          0,
+          0,
+          defaultWidth,
+          stencilImage.height * sizeRatio,
+        )
+        centerOn({ x: 50, y: 50 }, getScaleForWidth(defaultWidth))
+      }
+    } else {
+      stencilCanvas.clearRect(
+        0,
+        0,
+        stencilCanvas.canvas.width,
+        stencilCanvas.canvas.height,
+      )
+    }
+  }, [previewStencil, stencilCanvas, router])
+
+  useEffect(() => {
+    if (setCallerStencils && callerStencils) {
+      setCallerStencils(storageStencils)
+    }
+  }, [callerStencils])
+
+  useEffect(() => {
+    if (!stencilCanvas) return
+    if (!router.query.stencil) {
+      return
+    }
+    let stencil = router.query.stencil as string
+    // draw stencil image on canvas
+    let substring = stencil.split("/")
+    let fileName = substring[substring.length - 1]
+    let config = fileName.split(".")[0].split("-")
+    let x = Number(config[0])
+    let y = Number(config[1])
+    let width = Number(config[2])
+    var stencilImage = new Image()
+    stencilImage.src = "https://" + stencil
+    let sizeRatio = width / stencilImage.width
+    stencilCanvas.clearRect(
+      0,
+      0,
+      stencilCanvas.canvas.width,
+      stencilCanvas.canvas.height,
+    )
+    stencilCanvas.drawImage(
+      stencilImage,
+      x,
+      y,
+      width,
+      stencilImage.height * sizeRatio,
+    )
+    let centerX = x + width / 2
+    let centerY = y + (stencilImage.height * sizeRatio) / 2
+    centerOn({ x: centerX, y: centerY }, getScaleForWidth(width))
+  }, [router, stencilCanvas])
 
   return (
     <Stack
       padding="1em"
-      spacing="2em"
+      spacing="1em"
       bgColor="white"
       boxShadow="inset 0px 5px 5px rgb(0 0 0 / 28%)"
     >
-      <FileUploader
-        handleChange={handleChange}
-        name="new-stencil"
-        types={fileTypes}
-      >
-        <div
-          style={{
-            textAlign: "center",
-            padding: "1em",
-            border: "1px dashed black",
-            borderRadius: "1em",
-            cursor: "pointer",
-          }}
-        >
-          {file ? (
-            file.name
-          ) : (
+      {!addingStencil ? (
+        <Stack>
+          {callerStencils.length > 0 && (
             <>
-              <p style={{ fontWeight: "bold" }}>Upload an image</p>
-              <p>{"(png or jpeg)"}</p>
+              <Heading
+                fontSize={"1.5em"}
+                fontFamily="minecraft"
+                letterSpacing={"1px"}
+              >
+                Your Stencils
+              </Heading>
+              <HStack overflowX="auto">
+                {storageStencils.map((stencil, index) => (
+                  <Link
+                    minW="5em"
+                    key={index}
+                    isExternal={false}
+                    as={NextLink}
+                    href={`?stencil=${stencil}`}
+                  >
+                    <ChakraImage w="5em" src={`https://${stencil}`} />
+                  </Link>
+                ))}
+              </HStack>
+              <Divider />
             </>
           )}
-        </div>
-      </FileUploader>
-      <Button
-        fontFamily="minecraft"
-        letterSpacing="1px"
-        fontSize="18px"
-        backgroundColor="#FF4500"
-        color="#fff"
-        _hover={{ backgroundColor: "#FF4500" }}
-        onClick={handleUpload}
-        isDisabled={!file}
-      >
-        Upload Stencil
-      </Button>
-      {progress && <Progress value={progress} />}
-      <Heading
-        alignSelf={"center"}
-        fontSize={"1.5em"}
-        fontFamily="minecraft"
-        letterSpacing={"1px"}
-      >
-        Your Stencils
-      </Heading>
+          <Button
+            fontFamily="minecraft"
+            letterSpacing="1px"
+            fontSize="18px"
+            backgroundColor="#FF4500"
+            color="#fff"
+            _hover={{ backgroundColor: "#c53500" }}
+            onClick={handleAddingStencil}
+          >
+            New Stencil
+          </Button>
+        </Stack>
+      ) : (
+        <Formik
+          initialValues={{
+            startingX: 0,
+            startingY: 0,
+            imageWidth: defaultWidth,
+          }}
+          onSubmit={async ({ startingX, startingY, imageWidth }) => {
+            await uploadStencil(file, startingX, startingY, imageWidth)
+            setAddingStencil(false)
+          }}
+        >
+          {({ values }) => (
+            <Form>
+              <Stack>
+                <label
+                  htmlFor="file-upload"
+                  style={{ fontFamily: "minecraft" }}
+                >
+                  Upload file
+                </label>
+                <Input
+                  id="file-upload"
+                  type="file"
+                  accept="image/png, image/jpeg"
+                  className="file-upload"
+                  userSelect={"none"}
+                  onChange={handleNewStencilPicked}
+                />
+                {file && (
+                  <>
+                    <Field name="startingX">
+                      {({ field, form }) => (
+                        <FormControl
+                          isInvalid={form.errors.name && form.touched.name}
+                        >
+                          <FormLabel htmlFor="startingX">Starting X</FormLabel>
+                          <Input
+                            {...field}
+                            id="startingX"
+                            placeholder="0"
+                            type="number"
+                            onChange={(e) => {
+                              form.handleChange(e)
+                              handleStencilMoved(
+                                Number(e.target.value),
+                                values.startingY,
+                                values.imageWidth,
+                              )
+                            }}
+                            value={form.values.startingX}
+                          />
+                        </FormControl>
+                      )}
+                    </Field>
+                    <Field name="startingY">
+                      {({ field, form }) => (
+                        <FormControl
+                          isInvalid={form.errors.name && form.touched.name}
+                        >
+                          <FormLabel htmlFor="startingY">Starting Y</FormLabel>
+                          <Input
+                            {...field}
+                            id="startingY"
+                            placeholder="0"
+                            type="number"
+                            onChange={(e) => {
+                              form.handleChange(e)
+                              handleStencilMoved(
+                                values.startingX,
+                                Number(e.target.value),
+                                values.imageWidth,
+                              )
+                            }}
+                            value={form.values.startingY}
+                          />
+                        </FormControl>
+                      )}
+                    </Field>
+                    <Field name="imageWidth">
+                      {({ field, form }) => (
+                        <FormControl
+                          isInvalid={form.errors.name && form.touched.name}
+                        >
+                          <FormLabel htmlFor="imageWidth">Width</FormLabel>
+                          <Input
+                            required
+                            {...field}
+                            id="imageWidth"
+                            placeholder="100"
+                            type="number"
+                            onChange={(e) => {
+                              form.handleChange(e)
+                              handleStencilMoved(
+                                values.startingX,
+                                values.startingY,
+                                Number(e.target.value),
+                              )
+                            }}
+                            value={form.values.imageWidth}
+                          />
+                        </FormControl>
+                      )}
+                    </Field>
+                  </>
+                )}
+                <Stack>
+                  <Button
+                    fontFamily="minecraft"
+                    letterSpacing="1px"
+                    fontSize="18px"
+                    backgroundColor="#FF4500"
+                    color="#fff"
+                    _hover={{ backgroundColor: "#c53500" }}
+                    type="submit"
+                    mt="1em"
+                    w="100%"
+                  >
+                    Upload Stencil
+                  </Button>
+                  {progress > 0 && (
+                    <Progress color="#FF4500" value={progress} />
+                  )}
+                  <Button
+                    variant={"outline"}
+                    fontFamily="minecraft"
+                    letterSpacing="1px"
+                    fontSize="18px"
+                    color="#FF4500"
+                    borderColor={"#FF4500"}
+                    _hover={{ backgroundColor: "#ebebeb" }}
+                    onClick={() => {
+                      if (stencilCanvas)
+                        stencilCanvas.clearRect(0, 0, 1000, 1000)
+                      setAddingStencil(false)
+                      setPreviewStencil(null)
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </Stack>
+              </Stack>
+            </Form>
+          )}
+        </Formik>
+      )}
     </Stack>
   )
 }

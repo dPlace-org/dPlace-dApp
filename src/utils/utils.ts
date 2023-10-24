@@ -20,3 +20,8 @@ export const getColorOrDefault = (color: string): string => {
   if (!/^#[0-9A-F]{6}$/i.test(color)) return "#FF4500"
   return color
 }
+
+export const getScaleForWidth = (width: number): number => {
+  let scale = 1000 / width - 2
+  return scale
+}

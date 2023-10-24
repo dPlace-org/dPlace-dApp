@@ -24,14 +24,18 @@ import { BiSave } from "react-icons/bi"
 import { BsArrowsMove } from "react-icons/bs"
 import { GiHamburgerMenu } from "react-icons/gi"
 import { ImBin } from "react-icons/im"
-import { LuPaintbrush2 } from "react-icons/lu"
-import { PiCrosshairBold, PiEraserBold } from "react-icons/pi"
+import { LuImageOff, LuImagePlus, LuPaintbrush2 } from "react-icons/lu"
+import {
+  PiCrosshairBold,
+  PiEraserBold,
+  PiMagnifyingGlassBold,
+} from "react-icons/pi"
 import { useGetPixels } from "../../utils/Subgraph"
 
 import { useContract, useContractEvents, useSigner } from "@thirdweb-dev/react"
 import { ethers } from "ethers"
+import { useRouter } from "next/router"
 import { FaPalette } from "react-icons/fa"
-import { LiaHandPointer } from "react-icons/lia"
 import { useLocalStorage } from "react-use"
 import {
   ReactZoomPanPinchRef,
@@ -42,7 +46,9 @@ import { DPlaceGrid__factory } from "types"
 import { useDebouncedCallback } from "use-debounce"
 import { getColorOrDefault, getTextForColor } from "../../utils/utils"
 import ManagePixels from "./ManagePixels"
+import OwnedPixels from "./OwnedPixels"
 import SelectedPixel from "./SelectedPixel"
+import StencilManager from "./StencilManager"
 
 export interface Pixel {
   x: number
@@ -56,13 +62,14 @@ export interface Pixel {
 export default function Grid({ block }: { block: number }) {
   let gridAddress = process.env.NEXT_PUBLIC_GRID_ADDRESS
   const maxSpaces = 200
-  const pixelSize = 4
+  const pixelSize = 1
   const currentGridImageUrl = "/assets/images/grid-0.png"
 
   const transformComponentRef = useRef<ReactZoomPanPinchRef | null>(null)
   const updateCanvasRef = useRef<HTMLCanvasElement>(null)
   const editCanvasRef = useRef<HTMLCanvasElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const stencilCanvasRef = useRef<HTMLCanvasElement>(null)
   const {
     isOpen: isPixelsOpen,
     onOpen: onPixelsOpen,
@@ -74,6 +81,8 @@ export default function Grid({ block }: { block: number }) {
     onClose: onStencilClose,
   } = useDisclosure()
   const [canvas, setCanvas] = useState<CanvasRenderingContext2D | null>(null)
+  const [stencilCanvas, setStencilCanvas] =
+    useState<CanvasRenderingContext2D | null>(null)
   const [updateCanvas, setUpdateCanvas] =
     useState<CanvasRenderingContext2D | null>(null)
   const [editCanvas, setEditCanvas] = useState<CanvasRenderingContext2D | null>(
@@ -98,8 +107,11 @@ export default function Grid({ block }: { block: number }) {
   const isMobile = useBreakpointValue({ base: true, md: false })
   const signer = useSigner()
   const toast = useToast()
+  const router = useRouter()
 
   let loading = subgraphPixelsLoading || _loading
+
+  let isStencil = router.query.stencil != undefined
 
   let debounceToast = useDebouncedCallback(async (options: UseToastOptions) => {
     toast(options)
@@ -136,7 +148,6 @@ export default function Grid({ block }: { block: number }) {
   useEffect(() => {
     if (!isMobile) {
       onPixelsOpen()
-      onStencilOpen()
     }
   }, [isMobile])
 
@@ -160,6 +171,7 @@ export default function Grid({ block }: { block: number }) {
         canvasRef.current &&
         updateCanvasRef.current &&
         editCanvasRef.current &&
+        stencilCanvasRef.current &&
         size > 0
       ) {
         let _canvas = canvasRef.current.getContext("2d")
@@ -167,7 +179,10 @@ export default function Grid({ block }: { block: number }) {
         setCanvas(_canvas)
         setUpdateCanvas(updateCanvasRef.current.getContext("2d"))
         setEditCanvas(editCanvasRef.current.getContext("2d"))
-        centerCanvasOnPixel({ x: 500, y: 500 }, 5)
+        setStencilCanvas(stencilCanvasRef.current.getContext("2d"))
+        if (!isStencil) {
+          centerCanvasOnPixel({ x: 500, y: 500 }, 5)
+        }
       }
     }
   }, [size, canvas])
@@ -202,6 +217,15 @@ export default function Grid({ block }: { block: number }) {
   function saveUpdatePixels(pixels: Pixel[]) {
     setUpdatedPixels([...pixels])
     saveStoragePixels([...pixels])
+  }
+
+  function getPixelFromCoordinates(xCord: number, yCord: number) {
+    if (!updateCanvas || !transformComponentRef.current) return { x: 0, y: 0 }
+    const bounding = updateCanvas.canvas.getBoundingClientRect()
+    let scale = transformComponentRef.current.instance.transformState.scale
+    const x = Math.floor((xCord - bounding.left) / scale / pixelSize)
+    const y = Math.floor((yCord - bounding.top) / scale / pixelSize)
+    return { x, y }
   }
 
   function addNewPixel(pixel: Pixel) {
@@ -306,10 +330,7 @@ export default function Grid({ block }: { block: number }) {
       return
     }
     setShowColorPicker(false)
-    const bounding = updateCanvas.canvas.getBoundingClientRect()
-    let scale = transformComponentRef.current.instance.transformState.scale
-    const x = Math.floor((event.clientX - bounding.left) / scale / pixelSize)
-    const y = Math.floor((event.clientY - bounding.top) / scale / pixelSize)
+    let { x, y } = getPixelFromCoordinates(event.clientX, event.clientY)
 
     if (tool === "select") {
       selectPixel(x, y)
@@ -322,21 +343,12 @@ export default function Grid({ block }: { block: number }) {
 
   function drawPixels(event) {
     if (!updateCanvas) return
-    const bounding = updateCanvas.canvas.getBoundingClientRect()
-    let scale = transformComponentRef.current.instance.transformState.scale
-    let x
-    let y
-    if (event.touches) {
-      x = Math.floor(
-        (event.touches[0].clientX - bounding.left) / scale / pixelSize,
-      )
-      y = Math.floor(
-        (event.touches[0].clientY - bounding.top) / scale / pixelSize,
-      )
-    } else {
-      x = Math.floor((event.clientX - bounding.left) / scale / pixelSize)
-      y = Math.floor((event.clientY - bounding.top) / scale / pixelSize)
-    }
+    let { x, y } = event.touches
+      ? getPixelFromCoordinates(
+          event.touches[0].clientX,
+          event.touches[0].clientY,
+        )
+      : getPixelFromCoordinates(event.clientX, event.clientY)
 
     if (checkedPixel && x == checkedPixel.x && y == checkedPixel.y) return
 
@@ -384,6 +396,14 @@ export default function Grid({ block }: { block: number }) {
 
   function toggleColorPicker() {
     setShowColorPicker(!showColorPicker)
+  }
+
+  function toggleStencil() {
+    if (isStencilOpen) {
+      onStencilClose()
+    } else {
+      onStencilOpen()
+    }
   }
 
   function centerCanvasOnPixel(pixel: Pixel, scale: number) {
@@ -444,7 +464,7 @@ export default function Grid({ block }: { block: number }) {
         <Tooltip label="View Pixel" placement="right">
           <IconButton
             aria-label="select"
-            icon={<Icon as={LiaHandPointer} />}
+            icon={<Icon as={PiMagnifyingGlassBold} />} // TODO: change to magnifying glass
             bgColor={tool === "select" ? "#FF4500" : ""}
             color={tool === "select" ? "white" : ""}
             onClick={() => {
@@ -527,6 +547,32 @@ export default function Grid({ block }: { block: number }) {
             />
           </Tooltip>
         )}
+        <Tooltip label="Stencils" placement="right">
+          <IconButton
+            aria-label="stencils"
+            icon={<Icon as={LuImagePlus} />}
+            _hover={{ backgroundColor: "#FF4500", color: "white" }}
+            onClick={() => {
+              toggleStencil()
+              setShowColorPicker(false)
+            }}
+          />
+        </Tooltip>
+        {isStencil && (
+          <Tooltip label="Remove Stencil" placement="right">
+            <IconButton
+              aria-label="remove-stencil"
+              icon={<Icon as={LuImageOff} />}
+              _hover={{ backgroundColor: "#FF4500", color: "white" }}
+              onClick={() => {
+                router.push("/")
+                stencilCanvas.clearRect(0, 0, size, size)
+                centerCanvasOnPixel({ x: 500, y: 500 }, 10)
+                setShowColorPicker(false)
+              }}
+            />
+          </Tooltip>
+        )}
       </Stack>
       {(tool == "update" || tool == "remove") && showColorPicker && (
         <Stack>
@@ -543,129 +589,175 @@ export default function Grid({ block }: { block: number }) {
   )
 
   return (
-    <Stack overflowY={"hidden"}>
-      <Stack overflow={"hidden"} maxH={"calc(100vh - 88px)"} mt="88px">
-        <TransformWrapper
-          ref={transformComponentRef}
-          limitToBounds={false}
-          minScale={0.1}
-          maxScale={20}
-          doubleClick={{ disabled: true }}
-          centerOnInit={true}
-          panning={{ velocityDisabled: true, disabled: transformDisabled }}
-          wheel={{ step: 0.001, smoothStep: 0.005 }}
-        >
-          <TransformComponent>
-            <canvas
-              ref={canvasRef}
-              width={size}
-              height={size}
-              id="grid"
-              style={{
-                width: `${size}px`,
-                height: `${size}px`,
-                imageRendering: "pixelated",
-                cursor: tool === "move" ? "pointer" : "crosshair",
-                position: "absolute",
-                zIndex: 10000,
-              }}
-            />
-            <canvas
-              ref={updateCanvasRef}
-              width={size}
-              height={size}
-              style={{
-                width: `${size}px`,
-                height: `${size}px`,
-                imageRendering: "pixelated",
-                cursor: tool === "move" ? "pointer" : "crosshair",
-                position: "relative",
-                zIndex: 100000,
-              }}
-            />
-            <canvas
-              ref={editCanvasRef}
-              width={size}
-              height={size}
-              onClick={clickPixel}
-              onMouseMoveCapture={drawPixels}
-              onTouchMoveCapture={drawPixels}
-              onMouseDown={enableDrawPixels}
-              onTouchStart={enableDrawPixels}
-              onMouseLeave={disableDrawPixels}
-              onMouseOutCapture={disableDrawPixels}
-              onMouseUp={disableDrawPixels}
-              onTouchEnd={disableDrawPixels}
-              onTouchCancel={disableDrawPixels}
-              style={{
-                width: `${size}px`,
-                height: `${size}px`,
-                imageRendering: "pixelated",
-                cursor: tool === "move" ? "pointer" : "crosshair",
-                position: "absolute",
-                zIndex: 1000000,
-              }}
-            />
-          </TransformComponent>
-        </TransformWrapper>
-      </Stack>
-      {loading && (
-        <Center
-          backgroundColor="#00000012"
-          pos="absolute"
-          w={"100vw"}
-          h={"100vh"}
-        >
-          <Spinner />
-        </Center>
-      )}
-      {!isPixelsOpen && controls}
-      <Drawer
-        placement={"left"}
-        onClose={onPixelsClose}
-        isOpen={isPixelsOpen}
-        closeOnOverlayClick={false}
-      >
-        <DrawerOverlay display="none" />
-        <DrawerContent containerProps={{ width: "0" }}>
-          <DrawerBody bgColor="#FF4500" mt="5.5em" p="1em" pt="0 !important">
+    <TransformWrapper
+      ref={transformComponentRef}
+      limitToBounds={false}
+      minScale={0.1}
+      maxScale={20}
+      doubleClick={{ disabled: true }}
+      centerOnInit={true}
+      panning={{ velocityDisabled: true, disabled: transformDisabled }}
+      wheel={{ step: 0.001, smoothStep: 0.005 }}
+    >
+      {({ instance }) => {
+        return (
+          <Stack overflowY={"hidden"}>
             <Stack
               w="100%"
-              bgColor="transparent"
-              h="100%"
-              justifyContent={"space-between"}
+              overflow={"hidden"}
+              maxH={"calc(100vh - 88px)"}
+              mt="88px"
             >
-              {controls}
-              <ManagePixels
-                confirmClaimPixels={confirmClaimPixels}
-                removePixel={removeUpdatedPixel}
-                updatedPixels={updatedPixels}
-                maxSpaces={maxSpaces}
-                setLoading={setLoading}
-              />
-              {selectedPixel && (
-                <SelectedPixel
-                  pixel={selectedPixel}
-                  setUpdateColor={setColor}
+              <TransformComponent wrapperStyle={{ width: "100%" }}>
+                <canvas
+                  ref={canvasRef}
+                  width={size}
+                  height={size}
+                  id="grid"
+                  style={{
+                    width: `${size}px`,
+                    height: `${size}px`,
+                    imageRendering: "pixelated",
+                    cursor: tool === "move" ? "pointer" : "crosshair",
+                    position: "absolute",
+                    zIndex: 10000,
+                  }}
                 />
-              )}
+                <canvas
+                  ref={stencilCanvasRef}
+                  width={size}
+                  height={size}
+                  style={{
+                    width: `${size}px`,
+                    height: `${size}px`,
+                    imageRendering: "pixelated",
+                    cursor: tool === "move" ? "pointer" : "crosshair",
+                    position: "absolute",
+                    zIndex: 10000,
+                  }}
+                />
+                <canvas
+                  ref={updateCanvasRef}
+                  width={size}
+                  height={size}
+                  style={{
+                    width: `${size}px`,
+                    height: `${size}px`,
+                    imageRendering: "pixelated",
+                    cursor: tool === "move" ? "pointer" : "crosshair",
+                    position: "relative",
+                    zIndex: 10000,
+                  }}
+                />
+                <canvas
+                  ref={editCanvasRef}
+                  width={size}
+                  height={size}
+                  onClick={clickPixel}
+                  onMouseMoveCapture={drawPixels}
+                  onTouchMoveCapture={drawPixels}
+                  onMouseDown={enableDrawPixels}
+                  onTouchStart={enableDrawPixels}
+                  onMouseLeave={disableDrawPixels}
+                  onMouseOutCapture={disableDrawPixels}
+                  onMouseUp={disableDrawPixels}
+                  onTouchEnd={disableDrawPixels}
+                  onTouchCancel={disableDrawPixels}
+                  style={{
+                    width: `${size}px`,
+                    height: `${size}px`,
+                    imageRendering: "pixelated",
+                    cursor: tool === "move" ? "pointer" : "crosshair",
+                    position: "absolute",
+                    zIndex: 10000,
+                  }}
+                />
+              </TransformComponent>
             </Stack>
-          </DrawerBody>
-        </DrawerContent>
-      </Drawer>
-      {/* <Drawer
-        placement={"right"}
-        onClose={onStencilClose}
-        isOpen={isStencilOpen}
-        closeOnOverlayClick={false}
-      >
-        <DrawerOverlay display="none" />
-        <DrawerContent containerProps={{ width: "0" }}>
-          <DrawerBody bgColor="#FF4500" mt="5.5em" p="1em" pt="0 !important">
-            <StencilManager />
-          </DrawerBody>
-        </DrawerContent>
-      </Drawer> */}
-    </Stack>
+            {loading && (
+              <Center
+                backgroundColor="#00000012"
+                pos="absolute"
+                w={"100vw"}
+                h={"100vh"}
+              >
+                <Spinner />
+              </Center>
+            )}
+            {!isPixelsOpen && controls}
+            <Drawer
+              placement={"left"}
+              onClose={onPixelsClose}
+              isOpen={isPixelsOpen}
+              closeOnOverlayClick={false}
+              blockScrollOnMount={false}
+            >
+              <DrawerOverlay display="none" />
+              <DrawerContent containerProps={{ width: "0" }}>
+                <DrawerBody
+                  bgColor="#FF4500"
+                  mt="5.5em"
+                  p="1em"
+                  pt="0 !important"
+                >
+                  <Stack
+                    w="100%"
+                    bgColor="transparent"
+                    h="100%"
+                    justifyContent={"space-between"}
+                  >
+                    {controls}
+                    <Stack>
+                      <ManagePixels
+                        confirmClaimPixels={confirmClaimPixels}
+                        removePixel={removeUpdatedPixel}
+                        updatedPixels={updatedPixels}
+                        maxSpaces={maxSpaces}
+                        setLoading={setLoading}
+                      />
+                      <OwnedPixels centerOn={centerCanvasOnPixel} />
+                    </Stack>
+                    {selectedPixel && (
+                      <SelectedPixel
+                        pixel={selectedPixel}
+                        setUpdateColor={setColor}
+                      />
+                    )}
+                  </Stack>
+                </DrawerBody>
+              </DrawerContent>
+            </Drawer>
+            <Drawer
+              blockScrollOnMount={false}
+              placement={"right"}
+              onClose={onStencilClose}
+              isOpen={isStencilOpen}
+              closeOnOverlayClick={false}
+            >
+              <DrawerContent containerProps={{ width: "0" }} overflow="scroll">
+                <DrawerBody
+                  bgColor="#FF4500"
+                  mt="5.5em"
+                  p="1em"
+                  pt="0 !important"
+                >
+                  <Stack
+                    w="100%"
+                    bgColor="transparent"
+                    h="100%"
+                    justifyContent={"space-between"}
+                  >
+                    <StencilManager
+                      centerOn={centerCanvasOnPixel}
+                      stencilCanvas={stencilCanvas}
+                    />
+                  </Stack>
+                </DrawerBody>
+              </DrawerContent>
+            </Drawer>
+          </Stack>
+        )
+      }}
+    </TransformWrapper>
   )
 }

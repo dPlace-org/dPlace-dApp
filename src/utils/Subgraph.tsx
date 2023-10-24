@@ -31,6 +31,33 @@ export async function getPixels(
     })
 }
 
+export async function getOwnedPixels(
+  client: Client,
+  owner: String,
+  page: number,
+): Promise<Pixel[]> {
+  const q = `
+  query getOwnedPixels($owner: String!, $first: Int!, $skip: Int!) {
+    pixels(first: $first, skip: $skip, where: {owner: $owner}) {
+      x
+      y
+      color
+      lastUpdated
+    }
+  }`
+
+  let first = PAGESIZE
+  let skip = page * PAGESIZE
+
+  return await client
+    .query(q, { owner, first, skip })
+    .toPromise()
+    .then((result) => result.data.pixels)
+    .catch((err) => {
+      return []
+    })
+}
+
 export async function getPixel(
   client: Client,
   x: String,
@@ -142,4 +169,44 @@ export const useGetPixels = (): {
   }
 
   return { getPixels: queryPixels, loading, error }
+}
+
+export const useGetOwnedPixels = (): {
+  getOwnedPixels: (address: String) => Promise<Pixel[]>
+  loading: boolean
+  error: string
+} => {
+  const [client, setClient] = useState<Client | null>(null)
+  const [loading, setLoading] = useState<boolean>(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const client = createClient({
+      url: "/subgraph",
+      exchanges: [cacheExchange, fetchExchange],
+      requestPolicy: "network-only",
+    })
+    setClient(client)
+  }, [])
+
+  const queryPixels = async (owner: String) => {
+    if (client) {
+      try {
+        let pixels = []
+        let page = 0
+        setLoading(true)
+        let _pixels = await getOwnedPixels(client, owner, page)
+        pixels = [...pixels, ..._pixels]
+        setLoading(false)
+        return pixels
+      } catch (err) {
+        console.log(err)
+        setLoading(false)
+        setError(err)
+      }
+    }
+    return []
+  }
+
+  return { getOwnedPixels: queryPixels, loading, error }
 }

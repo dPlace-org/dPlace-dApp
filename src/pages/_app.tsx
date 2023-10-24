@@ -12,6 +12,7 @@ import {
 } from "@thirdweb-dev/react"
 import { AppProps } from "next/app"
 import Fonts from "../theme/Fonts"
+import "./styles.css"
 
 const App = ({ Component, pageProps }: AppProps) => {
   const magicLinkConfig = magicLink({

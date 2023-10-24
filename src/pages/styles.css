@@ -1,0 +1,24 @@
+input[type="file"] {
+  display: flex;
+  height: 5em;
+  border: 4px dashed black;
+  padding: 1em;
+  overflow: hidden;
+  width: -webkit-fill-available;
+}
+
+input[type="file"]::file-selector-button {
+  border: 2px solid #ff4500;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  border-radius: 0.2em;
+  background-color: #ffffff;
+  color: "black";
+  cursor: pointer;
+  font-family: minecraft;
+}
+
+input:focus {
+  outline: none;
+  border-color: "transparent !important";
+}
