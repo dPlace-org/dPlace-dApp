@@ -112,6 +112,7 @@ export default function Grid({ block }: { block: number }) {
   let loading = subgraphPixelsLoading || _loading
 
   let isStencil = router.query.stencil != undefined
+  console.log(isStencil)
 
   let debounceToast = useDebouncedCallback(async (options: UseToastOptions) => {
     toast(options)
@@ -166,6 +167,9 @@ export default function Grid({ block }: { block: number }) {
         for (let i = 0; i < pixels.length; i++) {
           setTimeout(() => addNewPixel(pixels[i]), 1)
         }
+        if (!isStencil) {
+          centerCanvasOnPixel({ x: 500, y: 500 }, 5)
+        }
       }
       if (
         canvasRef.current &&
@@ -180,12 +184,9 @@ export default function Grid({ block }: { block: number }) {
         setUpdateCanvas(updateCanvasRef.current.getContext("2d"))
         setEditCanvas(editCanvasRef.current.getContext("2d"))
         setStencilCanvas(stencilCanvasRef.current.getContext("2d"))
-        if (!isStencil) {
-          centerCanvasOnPixel({ x: 500, y: 500 }, 5)
-        }
       }
     }
-  }, [size, canvas])
+  }, [size, canvas, isStencil])
 
   useEffect(() => {
     if (data) {
@@ -566,8 +567,6 @@ export default function Grid({ block }: { block: number }) {
               _hover={{ backgroundColor: "#FF4500", color: "white" }}
               onClick={() => {
                 router.push("/")
-                stencilCanvas.clearRect(0, 0, size, size)
-                centerCanvasOnPixel({ x: 500, y: 500 }, 10)
                 setShowColorPicker(false)
               }}
             />
@@ -727,34 +726,13 @@ export default function Grid({ block }: { block: number }) {
                 </DrawerBody>
               </DrawerContent>
             </Drawer>
-            <Drawer
-              blockScrollOnMount={false}
-              placement={"right"}
-              onClose={onStencilClose}
+
+            <StencilManager
               isOpen={isStencilOpen}
-              closeOnOverlayClick={false}
-            >
-              <DrawerContent containerProps={{ width: "0" }} overflow="scroll">
-                <DrawerBody
-                  bgColor="#FF4500"
-                  mt="5.5em"
-                  p="1em"
-                  pt="0 !important"
-                >
-                  <Stack
-                    w="100%"
-                    bgColor="transparent"
-                    h="100%"
-                    justifyContent={"space-between"}
-                  >
-                    <StencilManager
-                      centerOn={centerCanvasOnPixel}
-                      stencilCanvas={stencilCanvas}
-                    />
-                  </Stack>
-                </DrawerBody>
-              </DrawerContent>
-            </Drawer>
+              onClose={onStencilClose}
+              centerOn={centerCanvasOnPixel}
+              stencilCanvas={stencilCanvas}
+            />
           </Stack>
         )
       }}
