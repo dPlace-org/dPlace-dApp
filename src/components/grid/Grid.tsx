@@ -90,6 +90,7 @@ export default function Grid({ block }: { block: number }) {
   )
   const [size, setSize] = useState(0)
   const [newPixels, setNewPixels] = useState<Pixel[]>([])
+  const [initialized, setInitialized] = useState(false)
   const [storagePixels, saveStoragePixels] = useLocalStorage("pixels", [])
   const [updatedPixels, setUpdatedPixels] = useState<Pixel[]>([])
   const [selectedPixel, setSelectedPixel] = useState<Pixel>()
@@ -112,7 +113,6 @@ export default function Grid({ block }: { block: number }) {
   let loading = subgraphPixelsLoading || _loading
 
   let isStencil = router.query.stencil != undefined
-  console.log(isStencil)
 
   let debounceToast = useDebouncedCallback(async (options: UseToastOptions) => {
     toast(options)
@@ -167,9 +167,7 @@ export default function Grid({ block }: { block: number }) {
         for (let i = 0; i < pixels.length; i++) {
           setTimeout(() => addNewPixel(pixels[i]), 1)
         }
-        if (!isStencil) {
-          centerCanvasOnPixel({ x: 500, y: 500 }, 5)
-        }
+        setInitialized(true)
       }
       if (
         canvasRef.current &&
@@ -187,6 +185,14 @@ export default function Grid({ block }: { block: number }) {
       }
     }
   }, [size, canvas, isStencil])
+
+  useEffect(() => {
+    if (initialized) {
+      if (!isStencil) {
+        centerCanvasOnPixel({ x: 500, y: 500 }, 5)
+      }
+    }
+  }, [initialized])
 
   useEffect(() => {
     if (data) {
