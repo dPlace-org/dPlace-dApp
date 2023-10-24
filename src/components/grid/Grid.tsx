@@ -567,6 +567,7 @@ export default function Grid({ block }: { block: number }) {
               _hover={{ backgroundColor: "#FF4500", color: "white" }}
               onClick={() => {
                 router.push("/")
+                stencilCanvas.clearRect(0, 0, size, size)
                 setShowColorPicker(false)
               }}
             />

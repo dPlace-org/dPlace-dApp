@@ -40,22 +40,22 @@ const PageLayout = ({ title, description, children }: PageProps) => {
         description={description}
         twitter={{
           cardType: "summary_large_image",
-          handle: "@hakkaofdev",
+          handle: "@dPlace",
         }}
         openGraph={{
           url: "https://www.hakkaofdev.fr",
-          title: title + " | Starter Kit",
+          title: title + " | dPlace",
           description: description,
           locale: "en_US",
-          images: [
-            {
-              url: "https://www.hakkaofdev.fr/assets/images/social.png",
-              width: 1200,
-              height: 630,
-              alt: "Alexandre Gossard",
-              type: "image/png",
-            },
-          ],
+          // images: [
+          //   {
+          //     url: "https://www.hakkaofdev.fr/assets/images/social.png",
+          //     width: 1200,
+          //     height: 630,
+          //     alt: "Alexandre Gossard",
+          //     type: "image/png",
+          //   },
+          // ],
         }}
         additionalLinkTags={[
           {
