@@ -18,6 +18,7 @@
     "@thirdweb-dev/react": "^3.16.0",
     "@thirdweb-dev/sdk": "^3.10.62",
     "@walletconnect/sign-client": "^2.10.1",
+    "add": "^2.0.6",
     "assert": "^2.0.0",
     "browserify-zlib": "latest",
     "ethers": "^5",
@@ -49,6 +50,8 @@
     "url": "latest",
     "urql": "^4.0.5",
     "use-debounce": "^9.0.4",
+    "use-eye-dropper": "^1.6.0",
+    "yarn": "^1.22.19",
     "zlib": "npm:browserify-zlib"
   },
   "devDependencies": {

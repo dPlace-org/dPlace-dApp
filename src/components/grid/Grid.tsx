@@ -18,13 +18,13 @@ import {
   useToast,
   UseToastOptions,
 } from "@chakra-ui/react"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { HexColorPicker } from "react-colorful"
 import { BiSave } from "react-icons/bi"
 import { BsArrowsMove } from "react-icons/bs"
 import { GiHamburgerMenu } from "react-icons/gi"
 import { ImBin } from "react-icons/im"
-import { LuImageOff, LuPaintbrush2 } from "react-icons/lu"
+import { LuImageOff, LuImagePlus, LuPaintbrush2 } from "react-icons/lu"
 import {
   PiCrosshairBold,
   PiEraserBold,
@@ -35,8 +35,7 @@ import { useGetPixels } from "../../utils/Subgraph"
 import { useContract, useContractEvents, useSigner } from "@thirdweb-dev/react"
 import { ethers } from "ethers"
 import { useRouter } from "next/router"
-import { FaPalette } from "react-icons/fa"
-import { FiImage } from "react-icons/fi"
+import { FaEyeDropper, FaPalette, FaRegImages } from "react-icons/fa"
 import { useLocalStorage } from "react-use"
 import {
   getMatrixTransformStyles,
@@ -46,6 +45,7 @@ import {
 } from "react-zoom-pan-pinch"
 import { DPlaceGrid__factory } from "types"
 import { useDebouncedCallback } from "use-debounce"
+import useEyeDropper from "use-eye-dropper"
 import { getColorOrDefault, getTextForColor } from "../../utils/utils"
 import ManagePixels from "./ManagePixels"
 import OwnedPixels from "./OwnedPixels"
@@ -103,6 +103,7 @@ export default function Grid({ block }: { block: number }) {
   const [_loading, setLoading] = useState(false)
   const [tool, setTool] = useState("move")
   const [showColorPicker, setShowColorPicker] = useState(false)
+  const [hideStencil, setHideStencil] = useState(false)
   const [transformDisabled, setTransformDisabled] = useState(false)
   const [color, setColor] = useState("#FF4500")
   const [drawingPixels, setDrawingPixels] = useState(false)
@@ -111,6 +112,7 @@ export default function Grid({ block }: { block: number }) {
   const signer = useSigner()
   const toast = useToast()
   const router = useRouter()
+  const { open, close, isSupported } = useEyeDropper()
 
   let loading = subgraphPixelsLoading || _loading
 
@@ -432,6 +434,21 @@ export default function Grid({ block }: { block: number }) {
     }
   }
 
+  const pickColor = useCallback(() => {
+    // Using async/await (can be used as a promise as-well)
+    const openPicker = async () => {
+      try {
+        const color = await open()
+        setColor(color.sRGBHex)
+        setTool("update")
+      } catch (e) {
+        console.log(e)
+        // Ensures component is still mounted
+      }
+    }
+    openPicker()
+  }, [open])
+
   let controls = (
     <HStack
       mt="1em"
@@ -518,6 +535,13 @@ export default function Grid({ block }: { block: number }) {
                 onClick={toggleColorPicker}
               />
             </Tooltip>
+            <Tooltip label="Color extractor" placement="right">
+              <IconButton
+                aria-label="show-color-picker"
+                icon={<Icon as={FaEyeDropper} />}
+                onClick={pickColor}
+              />
+            </Tooltip>
             <Tooltip label="Eraser" placement="right">
               <IconButton
                 aria-label="remove"
@@ -559,7 +583,7 @@ export default function Grid({ block }: { block: number }) {
         <Tooltip label="Stencils" placement="right">
           <IconButton
             aria-label="stencils"
-            icon={<Icon as={FiImage} />}
+            icon={<Icon as={FaRegImages} />}
             _hover={{ backgroundColor: "#FF4500", color: "white" }}
             onClick={() => {
               toggleStencil()
@@ -568,14 +592,16 @@ export default function Grid({ block }: { block: number }) {
           />
         </Tooltip>
         {isStencil && (
-          <Tooltip label="Remove Stencil" placement="right">
+          <Tooltip
+            label={hideStencil ? "Show Stencil" : "Hide Stencil"}
+            placement="right"
+          >
             <IconButton
-              aria-label="remove-stencil"
-              icon={<Icon as={LuImageOff} />}
+              aria-label="hide-stencil"
+              icon={<Icon as={!hideStencil ? LuImageOff : LuImagePlus} />}
               _hover={{ backgroundColor: "#FF4500", color: "white" }}
               onClick={() => {
-                router.push("/")
-                stencilCanvas.clearRect(0, 0, size, size)
+                setHideStencil(!hideStencil)
                 setShowColorPicker(false)
               }}
             />
@@ -632,7 +658,6 @@ export default function Grid({ block }: { block: number }) {
                     imageRendering: "pixelated",
                     cursor: tool === "move" ? "pointer" : "crosshair",
                     position: "absolute",
-                    zIndex: 10000,
                   }}
                 />
                 <canvas
@@ -645,7 +670,8 @@ export default function Grid({ block }: { block: number }) {
                     imageRendering: "pixelated",
                     cursor: tool === "move" ? "pointer" : "crosshair",
                     position: "absolute",
-                    zIndex: 10000,
+                    display: hideStencil ? "none" : "",
+                    opacity: 0.9,
                   }}
                 />
                 <canvas
@@ -658,7 +684,6 @@ export default function Grid({ block }: { block: number }) {
                     imageRendering: "pixelated",
                     cursor: tool === "move" ? "pointer" : "crosshair",
                     position: "relative",
-                    zIndex: 10000,
                   }}
                 />
                 <canvas
@@ -681,7 +706,6 @@ export default function Grid({ block }: { block: number }) {
                     imageRendering: "pixelated",
                     cursor: tool === "move" ? "pointer" : "crosshair",
                     position: "absolute",
-                    zIndex: 10000,
                   }}
                 />
               </TransformComponent>
