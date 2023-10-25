@@ -31,14 +31,17 @@ export default function StencilManager({
   isOpen,
   centerOn,
   stencilCanvas,
+  pixelSize,
 }: {
   onClose: () => void
   isOpen: boolean
   centerOn: (pixel: Pixel, scale: number) => void
   stencilCanvas: CanvasRenderingContext2D | null
+  pixelSize: number
 }) {
   const router = useRouter()
   const [progress, setProgress] = useState(0)
+  const [uploading, setUploading] = useState(false)
   const [addingStencil, setAddingStencil] = useState(false)
   const [file, setFile] = useState<File>(null)
   const [previewStencil, setPreviewStencil] = useState(null)
@@ -63,6 +66,7 @@ export default function StencilManager({
   ) => {
     if (!file) return
     try {
+      setUploading(true)
       let substring = file.name.split(".")
       let type = substring[substring.length - 1].toUpperCase()
       let newFileName = startingX + "-" + startingY + "-" + imageWidth
@@ -70,14 +74,16 @@ export default function StencilManager({
         type: file.type,
       })
 
-      let ipfsUpload = await upload({ data: [newFile] })
-      saveStorageStencils([
-        ...storageStencils,
-        ipfsUpload[0].replace("https://", ""),
-      ])
+      let ipfsUpload = (await upload({ data: [newFile] }))[0].replace(
+        "https://",
+        "",
+      )
+      saveStorageStencils([...storageStencils, ipfsUpload])
+      setCallerStencils([...storageStencils, ipfsUpload])
     } catch (e) {
       console.log(e)
     }
+    setUploading(false)
   }
 
   const handleAddingStencil = () => {
@@ -124,14 +130,16 @@ export default function StencilManager({
         stencilCanvas.canvas.width,
         stencilCanvas.canvas.height,
       )
-      let sizeRatio = imageWidth / stencilImage.width
+      let sizeRatio = (imageWidth * pixelSize) / stencilImage.width
       stencilCanvas.drawImage(
         stencilImage,
-        startingX,
-        startingY,
-        imageWidth,
+        startingX * pixelSize,
+        startingY * pixelSize,
+        imageWidth * pixelSize,
         stencilImage.height * sizeRatio,
       )
+      if (startingX && startingY && imageWidth)
+        centerOn({ x: startingX, y: startingY }, 5)
     }
   }
 
@@ -155,7 +163,7 @@ export default function StencilManager({
           defaultWidth,
           stencilImage.height * sizeRatio,
         )
-        centerOn({ x: 50, y: 50 }, getScaleForWidth(defaultWidth))
+        centerOn({ x: 0, y: 0 }, getScaleForWidth(defaultWidth))
       }
     } else {
       stencilCanvas.clearRect(
@@ -198,10 +206,10 @@ export default function StencilManager({
       )
       stencilCanvas.drawImage(
         stencilImage,
-        x * 2,
-        y * 2,
-        width * 2,
-        stencilImage.height * sizeRatio * 2,
+        x * pixelSize,
+        y * pixelSize,
+        width * pixelSize,
+        stencilImage.height * sizeRatio * pixelSize,
       )
       let centerX = x + width / 2
       let centerY = y + (stencilImage.height * sizeRatio) / 2
@@ -231,17 +239,17 @@ export default function StencilManager({
               bgColor="white"
               boxShadow="inset 0px 5px 5px rgb(0 0 0 / 28%)"
             >
+              <Heading
+                fontSize={"1.5em"}
+                fontFamily="minecraft"
+                letterSpacing={"1px"}
+              >
+                Stencils
+              </Heading>
               {!addingStencil ? (
                 <Stack>
                   {callerStencils.length > 0 && (
                     <>
-                      <Heading
-                        fontSize={"1.5em"}
-                        fontFamily="minecraft"
-                        letterSpacing={"1px"}
-                      >
-                        Your Stencils
-                      </Heading>
                       <HStack overflowX="auto">
                         {storageStencils.map((stencil, index) => (
                           <Link
@@ -279,7 +287,9 @@ export default function StencilManager({
                   }}
                   onSubmit={async ({ startingX, startingY, imageWidth }) => {
                     await uploadStencil(file, startingX, startingY, imageWidth)
-                    setAddingStencil(false)
+                    setTimeout(() => {
+                      setAddingStencil(false)
+                    }, 500)
                   }}
                 >
                   {({ values }) => (
@@ -399,11 +409,12 @@ export default function StencilManager({
                             type="submit"
                             mt="1em"
                             w="100%"
+                            isLoading={uploading}
                           >
                             Upload Stencil
                           </Button>
                           {progress > 0 && (
-                            <Progress color="#FF4500" value={progress} />
+                            <Progress colorScheme="orange" value={progress} />
                           )}
                           <Button
                             variant={"outline"}
@@ -417,6 +428,7 @@ export default function StencilManager({
                               if (stencilCanvas)
                                 stencilCanvas.clearRect(0, 0, 1000, 1000)
                               setAddingStencil(false)
+                              setFile(null)
                               setPreviewStencil(null)
                             }}
                           >

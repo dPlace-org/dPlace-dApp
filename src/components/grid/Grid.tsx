@@ -24,7 +24,7 @@ import { BiSave } from "react-icons/bi"
 import { BsArrowsMove } from "react-icons/bs"
 import { GiHamburgerMenu } from "react-icons/gi"
 import { ImBin } from "react-icons/im"
-import { LuImageOff, LuImagePlus, LuPaintbrush2 } from "react-icons/lu"
+import { LuImageOff, LuPaintbrush2 } from "react-icons/lu"
 import {
   PiCrosshairBold,
   PiEraserBold,
@@ -36,6 +36,7 @@ import { useContract, useContractEvents, useSigner } from "@thirdweb-dev/react"
 import { ethers } from "ethers"
 import { useRouter } from "next/router"
 import { FaPalette } from "react-icons/fa"
+import { FiImage } from "react-icons/fi"
 import { useLocalStorage } from "react-use"
 import {
   getMatrixTransformStyles,
@@ -558,7 +559,7 @@ export default function Grid({ block }: { block: number }) {
         <Tooltip label="Stencils" placement="right">
           <IconButton
             aria-label="stencils"
-            icon={<Icon as={LuImagePlus} />}
+            icon={<Icon as={FiImage} />}
             _hover={{ backgroundColor: "#FF4500", color: "white" }}
             onClick={() => {
               toggleStencil()
@@ -740,6 +741,7 @@ export default function Grid({ block }: { block: number }) {
             </Drawer>
 
             <StencilManager
+              pixelSize={pixelSize}
               isOpen={isStencilOpen}
               onClose={onStencilClose}
               centerOn={centerCanvasOnPixel}
