@@ -160,6 +160,7 @@ export default function Grid({ block }: { block: number }) {
     gridImage.onload = async () => {
       setSize(gridImage.width * pixelSize)
       if (canvas) {
+        setInitialized(true)
         canvas.drawImage(gridImage, 0, 0, size, size)
         // Catch up grid from subgraph
         let timestamp = currentGridImageUrl.split("-")[1].split(".")[0]
@@ -168,7 +169,6 @@ export default function Grid({ block }: { block: number }) {
         for (let i = 0; i < pixels.length; i++) {
           setTimeout(() => addNewPixel(pixels[i]), 1)
         }
-        setInitialized(true)
       }
       if (
         canvasRef.current &&
@@ -190,7 +190,7 @@ export default function Grid({ block }: { block: number }) {
   useEffect(() => {
     if (initialized) {
       if (!isStencil) {
-        centerCanvasOnPixel({ x: 500, y: 500 }, 5)
+        centerCanvasOnPixel({ x: 500, y: 500 }, 1)
       }
     }
   }, [initialized])
@@ -599,6 +599,9 @@ export default function Grid({ block }: { block: number }) {
     <TransformWrapper
       ref={transformComponentRef}
       limitToBounds={false}
+      initialScale={0.5}
+      initialPositionX={0}
+      initialPositionY={0}
       minScale={0.1}
       maxScale={20}
       doubleClick={{ disabled: true }}

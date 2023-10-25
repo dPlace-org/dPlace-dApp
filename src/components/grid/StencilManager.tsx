@@ -176,13 +176,6 @@ export default function StencilManager({
   useEffect(() => {
     if (!stencilCanvas) return
     if (!router.query.stencil) {
-      // stencilCanvas.clearRect(
-      //   0,
-      //   0,
-      //   stencilCanvas.canvas.width,
-      //   stencilCanvas.canvas.height,
-      // )
-      // centerOn({ x: 500, y: 500 }, 10)
       return
     }
     let stencil = router.query.stencil as string
@@ -205,10 +198,10 @@ export default function StencilManager({
       )
       stencilCanvas.drawImage(
         stencilImage,
-        x,
-        y,
-        width,
-        stencilImage.height * sizeRatio,
+        x * 2,
+        y * 2,
+        width * 2,
+        stencilImage.height * sizeRatio * 2,
       )
       let centerX = x + width / 2
       let centerY = y + (stencilImage.height * sizeRatio) / 2
