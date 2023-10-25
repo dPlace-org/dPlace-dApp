@@ -63,7 +63,7 @@ export interface Pixel {
 export default function Grid({ block }: { block: number }) {
   let gridAddress = process.env.NEXT_PUBLIC_GRID_ADDRESS
   const maxSpaces = 200
-  const pixelSize = 4
+  const pixelSize = 2
   const currentGridImageUrl = "/assets/images/grid-0.png"
 
   const transformComponentRef = useRef<ReactZoomPanPinchRef | null>(null)
