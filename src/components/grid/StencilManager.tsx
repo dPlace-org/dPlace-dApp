@@ -123,6 +123,7 @@ export default function StencilManager({
     if (!stencilCanvas || !previewStencil) return
     var stencilImage = new Image()
     stencilImage.src = previewStencil
+    stencilImage.style.imageRendering = "pixelated"
     stencilImage.onload = () => {
       stencilCanvas.clearRect(
         0,
@@ -148,6 +149,7 @@ export default function StencilManager({
     if (previewStencil) {
       var stencilImage = new Image()
       stencilImage.src = previewStencil
+      stencilImage.style.imageRendering = "pixelated"
       stencilImage.onload = () => {
         stencilCanvas.clearRect(
           0,
@@ -196,6 +198,7 @@ export default function StencilManager({
     let width = Number(config[2])
     var stencilImage = new Image()
     stencilImage.src = "https://" + stencil
+    stencilImage.style.imageRendering = "pixelated"
     stencilImage.onload = () => {
       let sizeRatio = width / stencilImage.width
       stencilCanvas.clearRect(
