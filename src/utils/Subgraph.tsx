@@ -38,7 +38,7 @@ export async function getOwnedPixels(
 ): Promise<Pixel[]> {
   const q = `
   query getOwnedPixels($owner: String!, $first: Int!, $skip: Int!) {
-    pixels(first: $first, skip: $skip, where: {owner: $owner}) {
+    pixels(first: $first, skip: $skip, where: {owner: $owner}, orderBy: lastUpdated, orderDirection: desc) {
       x
       y
       color

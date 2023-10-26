@@ -107,7 +107,7 @@ export default function GridControls({
         <Tooltip label="View Pixel" placement="right">
           <IconButton
             aria-label="select"
-            icon={<Icon as={PiMagnifyingGlassBold} />} // TODO: change to magnifying glass
+            icon={<Icon as={PiMagnifyingGlassBold} />}
             bgColor={tool === "select" ? "#FF4500" : ""}
             color={tool === "select" ? "white" : ""}
             onClick={() => {

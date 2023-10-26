@@ -45,6 +45,7 @@ export default function GridContainer() {
   const [_loading, setLoading] = useState(false)
   const [updatedPixels, setUpdatedPixels] = useState<Pixel[]>([])
   const [gridSize, setGridSize] = useState(0)
+  const [currentStencil, setCurrentStencil] = useState(null)
   const toast = useToast()
   const { getPixels, loading: subgraphPixelsLoading } = useGetPixels()
   const transformComponentRef = useRef<ReactZoomPanPinchRef | null>(null)
@@ -77,7 +78,7 @@ export default function GridContainer() {
   )
 
   const loading = subgraphPixelsLoading || _loading
-  let hasStencil = router.query.stencil != undefined
+  let hasStencil = currentStencil != undefined
 
   const {
     isOpen: isPixelMenuOpen,
@@ -168,7 +169,7 @@ export default function GridContainer() {
         }
       }
     }
-  }, [gridSize, drawingCanvas, hasStencil])
+  }, [gridSize, drawingCanvas])
 
   // draw pixels from chain events
   useEffect(() => {
@@ -385,6 +386,8 @@ export default function GridContainer() {
         onClose={onStencilClose}
         centerOn={centerCanvasOnPixel}
         stencilCanvas={stencilCanvas}
+        currentStencil={currentStencil}
+        setCurrentStencil={setCurrentStencil}
       />
     </Stack>
   )

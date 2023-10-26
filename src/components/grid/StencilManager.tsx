@@ -30,10 +30,14 @@ export default function StencilManager({
   centerOn,
   stencilCanvas,
   pixelSize,
+  currentStencil,
+  setCurrentStencil,
 }: {
   onClose: () => void
   isOpen: boolean
   centerOn: (pixel: Pixel, scale: number) => void
+  currentStencil: string
+  setCurrentStencil: (stencil: string) => void
   stencilCanvas: CanvasRenderingContext2D | null
   pixelSize: number
 }) {
@@ -44,7 +48,6 @@ export default function StencilManager({
   const [addingStencil, setAddingStencil] = useState(false)
   const [file, setFile] = useState<File>(null)
   const [previewStencil, setPreviewStencil] = useState(null)
-  const [currentStencil, setCurrentStencil] = useState(null)
   const [callerStencils, setCallerStencils] = useState([])
   const [storageStencils, saveStorageStencils] = useLocalStorage("stencils", [])
 
