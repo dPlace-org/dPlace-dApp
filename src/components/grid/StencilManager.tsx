@@ -11,13 +11,11 @@ import {
   HStack,
   Image as ChakraImage,
   Input,
-  Link,
   Progress,
   Stack,
 } from "@chakra-ui/react"
 import { useStorageUpload } from "@thirdweb-dev/react"
 import { Field, Form, Formik } from "formik"
-import NextLink from "next/link"
 import { useRouter } from "next/router"
 import { useEffect, useState } from "react"
 import { useLocalStorage } from "react-use"
@@ -42,6 +40,7 @@ export default function StencilManager({
   const router = useRouter()
   const [progress, setProgress] = useState(0)
   const [uploading, setUploading] = useState(false)
+  const [fetched, setFetched] = useState(false)
   const [addingStencil, setAddingStencil] = useState(false)
   const [file, setFile] = useState<File>(null)
   const [previewStencil, setPreviewStencil] = useState(null)
@@ -190,42 +189,14 @@ export default function StencilManager({
   }, [callerStencils])
 
   useEffect(() => {
+    if (fetched) return
     if (!stencilCanvas) return
     if (!router.query.stencil) {
       return
     }
     let stencil = router.query.stencil as string
-
-    // draw stencil image on canvas
-    let substring = stencil.split("/")
-    let fileName = substring[substring.length - 1]
-    let config = fileName.split(".")[0].split("-")
-    let x = Number(config[0])
-    let y = Number(config[1])
-    let width = Number(config[2])
-    var stencilImage = new Image()
-    stencilImage.src = "https://" + stencil
-    stencilImage.style.imageRendering = "pixelated"
-    stencilImage.onload = () => {
-      let sizeRatio = width / stencilImage.width
-      stencilCanvas.clearRect(
-        0,
-        0,
-        stencilCanvas.canvas.width,
-        stencilCanvas.canvas.height,
-      )
-      stencilCanvas.drawImage(
-        stencilImage,
-        x * pixelSize,
-        y * pixelSize,
-        width * pixelSize,
-        stencilImage.height * sizeRatio * pixelSize,
-      )
-      let centerX = x + width / 2
-      let centerY = y + (stencilImage.height * sizeRatio) / 2
-      setCurrentStencil(stencil)
-      centerOn({ x: centerX, y: centerY }, getScaleForWidth(width))
-    }
+    selectStencil(stencil)
+    setFetched(true)
   }, [router, stencilCanvas])
 
   function goToStencilLocation(_stencil: string) {
@@ -244,6 +215,50 @@ export default function StencilManager({
       let centerY = y + (stencilImage.height * sizeRatio) / 2
       setCurrentStencil(_stencil)
       centerOn({ x: centerX, y: centerY }, getScaleForWidth(width * 2))
+    }
+  }
+
+  function selectStencil(_stencil: string) {
+    if (!window || !stencilCanvas) return
+    let newURL = router.pathname + "?stencil=" + _stencil
+    window.history.replaceState(
+      {
+        ...window.history.state,
+        as: newURL,
+        url: newURL,
+      },
+      "",
+      newURL,
+    )
+    // draw stencil image on canvas
+    let substring = _stencil.split("/")
+    let fileName = substring[substring.length - 1]
+    let config = fileName.split(".")[0].split("-")
+    let x = Number(config[0])
+    let y = Number(config[1])
+    let width = Number(config[2])
+    var stencilImage = new Image()
+    stencilImage.src = "https://" + _stencil
+    stencilImage.style.imageRendering = "pixelated"
+    stencilImage.onload = () => {
+      let sizeRatio = width / stencilImage.width
+      stencilCanvas.clearRect(
+        0,
+        0,
+        stencilCanvas.canvas.width,
+        stencilCanvas.canvas.height,
+      )
+      stencilCanvas.drawImage(
+        stencilImage,
+        x * pixelSize,
+        y * pixelSize,
+        width * pixelSize,
+        stencilImage.height * sizeRatio * pixelSize,
+      )
+      let centerX = x + width / 2
+      let centerY = y + (stencilImage.height * sizeRatio) / 2
+      setCurrentStencil(_stencil)
+      centerOn({ x: centerX, y: centerY }, getScaleForWidth(width))
     }
   }
 
@@ -282,16 +297,15 @@ export default function StencilManager({
                     <>
                       <HStack overflowX="auto">
                         {callerStencils.map((stencil, index) => (
-                          <Stack>
-                            <Link
-                              minW="5em"
-                              key={index}
-                              isExternal={false}
-                              as={NextLink}
-                              href={`?stencil=${stencil}`}
-                            >
-                              <ChakraImage w="5em" src={`https://${stencil}`} />
-                            </Link>
+                          <Stack
+                            minW="5em"
+                            cursor={"pointer"}
+                            key={index}
+                            onClick={() => {
+                              selectStencil(stencil)
+                            }}
+                          >
+                            <ChakraImage w="5em" src={`https://${stencil}`} />
                           </Stack>
                         ))}
                       </HStack>
@@ -343,7 +357,16 @@ export default function StencilManager({
                               stencilCanvas.canvas.width,
                             )
                           setCurrentStencil(null)
-                          router.push(router.pathname)
+                          window.history.replaceState(
+                            {
+                              ...window.history.state,
+                              as: router.pathname,
+                              url: router.pathname,
+                            },
+                            "",
+                            router.pathname,
+                          )
+                          centerOn({ x: 500, y: 500 }, 1)
                         }}
                       >
                         Remove
