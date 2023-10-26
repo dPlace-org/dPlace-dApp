@@ -20,17 +20,17 @@ import { useDebouncedCallback } from "use-debounce"
 import { Pixel } from "./Grid"
 
 interface ManagePixelsProps {
-  maxSpaces: number
+  maxPixels: number
   updatedPixels: Pixel[]
   removePixel: (x: number, y: number) => void
   confirmClaimPixels: () => void
   setLoading: (value: boolean) => void
 }
 
-export default function ManagePixels(props: ManagePixelsProps) {
+export default function PixelMenu(props: ManagePixelsProps) {
   let gridAddress = process.env.NEXT_PUBLIC_GRID_ADDRESS
   const {
-    maxSpaces,
+    maxPixels,
     updatedPixels,
     removePixel,
     confirmClaimPixels,
@@ -76,10 +76,6 @@ export default function ManagePixels(props: ManagePixelsProps) {
   return (
     <Stack bgColor="white" boxShadow="inset 0px 5px 5px rgb(0 0 0 / 28%)">
       <Stack m="1em">
-        {/* <Heading mt="1em" fontSize={"1.5em"}>
-          Your Pixels
-        </Heading> */}
-
         <Heading
           mt="10px"
           fontSize={"1.5em"}
@@ -100,7 +96,7 @@ export default function ManagePixels(props: ManagePixelsProps) {
                 color="gray"
                 mt="0"
               >
-                <span style={{ fontWeight: "bold" }}>Max:</span> {maxSpaces}
+                <span style={{ fontWeight: "bold" }}>Max:</span> {maxPixels}
               </Text>
               <Icon mt="-5px" as={FaQuestionCircle} color="gray" />
             </HStack>

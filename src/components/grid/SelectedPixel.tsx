@@ -58,8 +58,8 @@ export default function SelectedPixel({
       setPrice("0.0")
       setHalvingTime(null)
     }
-    if (pixel && initialized) handler()
-  }, [pixel, initialized])
+    if (pixel && initialized && signer) handler()
+  }, [pixel, initialized, signer])
 
   const calculateNextHalving = (pixel: Pixel) => {
     let halvingsPassed =

@@ -1,4 +1,4 @@
-import { Heading, HStack, Stack, Text } from "@chakra-ui/react"
+import { Heading, HStack, Spinner, Stack, Text } from "@chakra-ui/react"
 import { useSigner } from "@thirdweb-dev/react"
 import { useEffect, useState } from "react"
 import { useGetOwnedPixels } from "../../utils/Subgraph"
@@ -11,23 +11,21 @@ export default function OwnedPixels({
   centerOn: (pixel: Pixel, scale: number) => void
 }) {
   const [ownedPixels, setOwnedPixels] = useState<Pixel[]>([])
-
-  const { getOwnedPixels } = useGetOwnedPixels()
+  const [fetched, setFetched] = useState(false)
+  const { getOwnedPixels, loading } = useGetOwnedPixels()
   const signer = useSigner()
 
   useEffect(() => {
     let handler = async () => {
       if (!signer || !getOwnedPixels) return
-      console.log("getting owned pixels")
+      setFetched(true)
       let pixels = await getOwnedPixels(
         (await signer.getAddress()).toLowerCase(),
       )
       setOwnedPixels(pixels)
     }
-    handler()
-  }, [signer])
-
-  if (ownedPixels.length === 0) return
+    if (!fetched) handler()
+  }, [signer, getOwnedPixels])
 
   return (
     <Stack
@@ -50,6 +48,10 @@ export default function OwnedPixels({
         mt="-.5em"
         minH="105px"
       >
+        {loading && <Spinner />}
+        {ownedPixels.length === 0 && (
+          <Text fontFamily={"minecraft"}>No owned pixels</Text>
+        )}
         {ownedPixels.map((pixel, index) => (
           <Stack
             key={index}

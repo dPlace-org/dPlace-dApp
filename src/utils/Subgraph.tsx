@@ -192,11 +192,9 @@ export const useGetOwnedPixels = (): {
   const queryPixels = async (owner: String) => {
     if (client) {
       try {
-        let pixels = []
         let page = 0
         setLoading(true)
-        let _pixels = await getOwnedPixels(client, owner, page)
-        pixels = [...pixels, ..._pixels]
+        let pixels = await getOwnedPixels(client, owner, page)
         setLoading(false)
         return pixels
       } catch (err) {
@@ -208,5 +206,5 @@ export const useGetOwnedPixels = (): {
     return []
   }
 
-  return { getOwnedPixels: queryPixels, loading, error }
+  return { getOwnedPixels: client ? queryPixels : null, loading, error }
 }
