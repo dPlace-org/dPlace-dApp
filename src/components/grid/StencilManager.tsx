@@ -45,6 +45,7 @@ export default function StencilManager({
   const [addingStencil, setAddingStencil] = useState(false)
   const [file, setFile] = useState<File>(null)
   const [previewStencil, setPreviewStencil] = useState(null)
+  const [currentStencil, setCurrentStencil] = useState(null)
   const [callerStencils, setCallerStencils] = useState([])
   const [storageStencils, saveStorageStencils] = useLocalStorage("stencils", [])
 
@@ -87,7 +88,12 @@ export default function StencilManager({
   }
 
   const handleAddingStencil = () => {
-    stencilCanvas.clearRect(0, 0, 1000, 1000)
+    stencilCanvas.clearRect(
+      0,
+      0,
+      stencilCanvas.canvas.width,
+      stencilCanvas.canvas.width,
+    )
     setAddingStencil(true)
   }
 
@@ -189,6 +195,7 @@ export default function StencilManager({
       return
     }
     let stencil = router.query.stencil as string
+
     // draw stencil image on canvas
     let substring = stencil.split("/")
     let fileName = substring[substring.length - 1]
@@ -216,9 +223,29 @@ export default function StencilManager({
       )
       let centerX = x + width / 2
       let centerY = y + (stencilImage.height * sizeRatio) / 2
+      setCurrentStencil(stencil)
       centerOn({ x: centerX, y: centerY }, getScaleForWidth(width))
     }
   }, [router, stencilCanvas])
+
+  function goToStencilLocation(_stencil: string) {
+    let substring = _stencil.split("/")
+    let fileName = substring[substring.length - 1]
+    let config = fileName.split(".")[0].split("-")
+    let x = Number(config[0])
+    let y = Number(config[1])
+    let width = Number(config[2])
+    var stencilImage = new Image()
+    stencilImage.src = "https://" + _stencil
+    stencilImage.style.imageRendering = "pixelated"
+    stencilImage.onload = () => {
+      let sizeRatio = width / stencilImage.width
+      let centerX = x + width / 2
+      let centerY = y + (stencilImage.height * sizeRatio) / 2
+      setCurrentStencil(_stencil)
+      centerOn({ x: centerX, y: centerY }, getScaleForWidth(width * 2))
+    }
+  }
 
   return (
     <Drawer
@@ -254,19 +281,20 @@ export default function StencilManager({
                   {callerStencils.length > 0 && (
                     <>
                       <HStack overflowX="auto">
-                        {storageStencils.map((stencil, index) => (
-                          <Link
-                            minW="5em"
-                            key={index}
-                            isExternal={false}
-                            as={NextLink}
-                            href={`?stencil=${stencil}`}
-                          >
-                            <ChakraImage w="5em" src={`https://${stencil}`} />
-                          </Link>
+                        {callerStencils.map((stencil, index) => (
+                          <Stack>
+                            <Link
+                              minW="5em"
+                              key={index}
+                              isExternal={false}
+                              as={NextLink}
+                              href={`?stencil=${stencil}`}
+                            >
+                              <ChakraImage w="5em" src={`https://${stencil}`} />
+                            </Link>
+                          </Stack>
                         ))}
                       </HStack>
-                      <Divider />
                     </>
                   )}
                   <Button
@@ -280,6 +308,48 @@ export default function StencilManager({
                   >
                     New Stencil
                   </Button>
+                  {currentStencil && (
+                    <Stack>
+                      <Divider />
+                      <Heading
+                        fontSize={"1.5em"}
+                        fontFamily="minecraft"
+                        letterSpacing={"1px"}
+                      >
+                        Current Stencil
+                      </Heading>
+                      <ChakraImage
+                        cursor={"pointer"}
+                        alignSelf={"center"}
+                        w="5em"
+                        src={`https://${currentStencil}`}
+                        onClick={() => {
+                          goToStencilLocation(currentStencil)
+                        }}
+                      />
+
+                      <Button
+                        fontFamily="minecraft"
+                        letterSpacing="1px"
+                        fontSize="18px"
+                        variant={"outline"}
+                        borderColor="#FF4500"
+                        onClick={() => {
+                          if (stencilCanvas)
+                            stencilCanvas.clearRect(
+                              0,
+                              0,
+                              stencilCanvas.canvas.width,
+                              stencilCanvas.canvas.width,
+                            )
+                          setCurrentStencil(null)
+                          router.push(router.pathname)
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    </Stack>
+                  )}
                 </Stack>
               ) : (
                 <Formik
@@ -429,7 +499,12 @@ export default function StencilManager({
                             _hover={{ backgroundColor: "#ebebeb" }}
                             onClick={() => {
                               if (stencilCanvas)
-                                stencilCanvas.clearRect(0, 0, 1000, 1000)
+                                stencilCanvas.clearRect(
+                                  0,
+                                  0,
+                                  stencilCanvas.canvas.width,
+                                  stencilCanvas.canvas.width,
+                                )
                               setAddingStencil(false)
                               setFile(null)
                               setPreviewStencil(null)
