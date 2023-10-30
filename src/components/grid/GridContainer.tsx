@@ -11,6 +11,7 @@ import {
   useToast,
 } from "@chakra-ui/react"
 import { useContract, useContractEvents, useSigner } from "@thirdweb-dev/react"
+
 import { ethers } from "ethers"
 import { useRouter } from "next/router"
 import { useEffect, useRef, useState } from "react"
@@ -27,7 +28,6 @@ import StencilManager from "./StencilManager"
 
 export default function GridContainer() {
   let gridAddress = process.env.NEXT_PUBLIC_GRID_ADDRESS
-  const currentGridImageUrl = "/assets/images/grid-0.png"
   const maxPixels = 200
   const pixelSize = 2
   const [block, setBlock] = useState<number>(0)
@@ -40,6 +40,7 @@ export default function GridContainer() {
   const [selectedPixel, setSelectedPixel] = useState<Pixel>()
   const [panningDisabled, setPanningDisabled] = useState(false)
   const [showColorPicker, setShowColorPicker] = useState(false)
+  const [cachedGridUrl, setCachedGridUrl] = useState("")
   const [hideStencil, setHideStencil] = useState(false)
   const [storagePixels, saveStoragePixels] = useLocalStorage("pixels", [])
   const [_loading, setLoading] = useState(false)
@@ -90,6 +91,23 @@ export default function GridContainer() {
     onOpen: onStencilOpen,
     onClose: onStencilClose,
   } = useDisclosure()
+
+  useEffect(() => {
+    const handler = async () => {
+      try {
+        setLoading(true)
+        let response = await fetch("/api/retrieve-grid")
+        let url = await response.json()
+        if (!url.message) setCachedGridUrl("/assets/images/grid-0.png")
+        setCachedGridUrl(url.message)
+        setLoading(false)
+      } catch (e) {
+        console.log(e)
+        setCachedGridUrl("/assets/images/grid-0.png")
+      }
+    }
+    handler()
+  }, [])
 
   useEffect(() => {
     if (
@@ -153,23 +171,25 @@ export default function GridContainer() {
 
   // draw canvas from subgraph
   useEffect(() => {
+    if (!cachedGridUrl) return
     var gridImage = new Image()
-    gridImage.src = currentGridImageUrl
+    gridImage.src = cachedGridUrl
     gridImage.onload = async () => {
       setGridSize(gridImage.width * pixelSize)
       if (drawingCanvas) {
         centerCanvasOnPixel({ x: 500, y: 500 }, 0.5)
+        drawingCanvas.imageSmoothingEnabled = false
         drawingCanvas.drawImage(gridImage, 0, 0, gridSize, gridSize)
         // Catch up grid from subgraph
-        let timestamp = currentGridImageUrl.split("-")[1].split(".")[0]
-        let pixels = await getPixels(Number(timestamp))
+        let timestamp = getTimestampFromUrl(cachedGridUrl)
+        let pixels = await getPixels(timestamp)
         setNewPixels(pixels)
         for (let i = 0; i < pixels.length; i++) {
           setTimeout(() => addNewPixel(pixels[i]), 1)
         }
       }
     }
-  }, [gridSize, drawingCanvas])
+  }, [cachedGridUrl, gridSize, drawingCanvas])
 
   // draw pixels from chain events
   useEffect(() => {
@@ -391,4 +411,10 @@ export default function GridContainer() {
       />
     </Stack>
   )
+}
+
+function getTimestampFromUrl(url: string): number {
+  let splitUrl = url.split("/")
+  let timestamp = splitUrl[splitUrl.length - 1].split(".")[0].split("-")[0]
+  return Number(timestamp)
 }

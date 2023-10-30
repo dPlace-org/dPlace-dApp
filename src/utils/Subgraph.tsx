@@ -8,6 +8,7 @@ export async function getPixels(
   client: Client,
   timestamp: number,
   page: number,
+  pageSize?: number,
 ): Promise<Pixel[]> {
   const q = `
   query getPixels($timestamp: Int!, $first: Int!, $skip: Int!) {
@@ -19,8 +20,10 @@ export async function getPixels(
     }
   }`
 
-  let first = PAGESIZE
-  let skip = page * PAGESIZE
+  let size = pageSize ? pageSize : PAGESIZE
+
+  let first = size
+  let skip = page * size
 
   return await client
     .query(q, { timestamp, first, skip })

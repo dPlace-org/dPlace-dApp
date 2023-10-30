@@ -233,6 +233,7 @@ export default function Grid({
                 imageRendering: "pixelated",
                 cursor: tool === "move" ? "pointer" : "crosshair",
                 position: "absolute",
+                backgroundColor: "white",
               }}
             />
             <canvas
