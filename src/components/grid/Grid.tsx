@@ -22,7 +22,6 @@ interface GridProps {
   maxPixels: number
   gridSize: number
   isPixelMenuOpen: boolean
-  panningDisabled: boolean
   hideStencil: boolean
   selectedColor: string
   onPixelMenuOpen: () => void
@@ -31,6 +30,7 @@ interface GridProps {
   centerCanvasOnPixel: (pixel: Pixel, scale: number) => void
   removeUpdatedPixel: (x: number, y: number) => void
   setShowColorPicker: (val: boolean) => void
+  setTool: (tool: string) => void
 }
 
 export default function Grid({
@@ -46,7 +46,6 @@ export default function Grid({
   gridSize,
   updatedPixels,
   isPixelMenuOpen,
-  panningDisabled,
   hideStencil,
   selectedColor,
   centerCanvasOnPixel,
@@ -55,6 +54,7 @@ export default function Grid({
   onPixelMenuOpen,
   removeUpdatedPixel,
   setShowColorPicker,
+  setTool,
 }: GridProps) {
   const [initialized, setInitialized] = useState(false)
   const [highlightedPixel, setHighlightedPixel] = useState<Pixel>()
@@ -217,9 +217,12 @@ export default function Grid({
           maxScale={20}
           doubleClick={{ disabled: true }}
           centerOnInit={true}
-          panning={{ velocityDisabled: true, disabled: panningDisabled }}
+          panning={{ velocityDisabled: true, disabled: tool !== "move" }}
           wheel={{ step: 0.001, smoothStep: 0.005 }}
           customTransform={getMatrixTransformStyles}
+          onZoomStart={() => {
+            setTool("move")
+          }}
         >
           <TransformComponent wrapperStyle={{ width: "100%" }}>
             <canvas

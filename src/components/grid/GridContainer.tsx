@@ -326,7 +326,7 @@ export default function GridContainer() {
         maxPixels={maxPixels}
         gridSize={gridSize}
         isPixelMenuOpen={isPixelMenuOpen}
-        panningDisabled={panningDisabled}
+        setTool={setTool}
         hideStencil={hideStencil}
         selectedColor={selectedColor}
         onPixelMenuOpen={onPixelMenuOpen}
