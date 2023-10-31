@@ -5,8 +5,8 @@ import GridContainer from "../components/grid/GridContainer"
 const IndexPage = () => {
   return (
     <PageLayout
-      title="Home"
-      description="Discover a starter kit which includes Next.js, Chakra-UI, Framer-Motion in Typescript. You have few components, Internationalization, SEO and more in this template ! Enjoy coding."
+      title="dPlace - community owned pixels"
+      description="Join the dPlace community and leave your mark on the grid"
     >
       <Stack spacing={4} w="100%" overflowY={"unset"}>
         <GridContainer />

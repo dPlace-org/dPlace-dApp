@@ -52,7 +52,7 @@ const PageLayout = ({ title, description, children }: PageProps) => {
   return (
     <>
       <NextSeo
-        title={title + " | dPlace"}
+        title={title}
         description={description}
         twitter={{
           cardType: "summary_large_image",
@@ -60,7 +60,7 @@ const PageLayout = ({ title, description, children }: PageProps) => {
         }}
         openGraph={{
           url: "https://dplace.fun",
-          title: title + " | dPlace",
+          title: title,
           description: description,
           locale: "en_US",
           images: [
