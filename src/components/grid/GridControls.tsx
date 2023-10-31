@@ -60,7 +60,7 @@ export default function GridControls({
   toggleStencil,
   toggleShowStencil,
 }: Props) {
-  const { open } = useEyeDropper()
+  const { open, isSupported } = useEyeDropper()
 
   const pickColor = useCallback(() => {
     // Using async/await (can be used as a promise as-well)
@@ -155,13 +155,15 @@ export default function GridControls({
                 onClick={() => setShowColorPicker(!showColorPicker)}
               />
             </Tooltip>
-            <Tooltip label="Color extractor" placement="right">
-              <IconButton
-                aria-label="show-color-picker"
-                icon={<Icon as={FaEyeDropper} />}
-                onClick={pickColor}
-              />
-            </Tooltip>
+            {isSupported() && (
+              <Tooltip label="Color extractor" placement="right">
+                <IconButton
+                  aria-label="show-color-picker"
+                  icon={<Icon as={FaEyeDropper} />}
+                  onClick={pickColor}
+                />
+              </Tooltip>
+            )}
             <Tooltip label="Eraser" placement="right">
               <IconButton
                 aria-label="remove"
