@@ -1,5 +1,5 @@
 import { getPixels } from "@/utils/Subgraph"
-import { list, put } from "@vercel/blob"
+import { del, list, put } from "@vercel/blob"
 import Color from "color"
 import { createReadStream, createWriteStream, unlink } from "fs"
 import type { NextApiRequest, NextApiResponse } from "next"
@@ -17,9 +17,15 @@ export default async function handler(
 ) {
   // Retrieves the most recently built Grid PNG and retrieves all newly updated pixels from the subgraph.
 
-  const { blobs } = await list()
-  let timestamp = Number(blobs[0].pathname.split(".")[0])
-  let gridUrl = blobs[0].url
+  const { blobs } = await list({ prefix: `grid` })
+
+  const response = await fetch(blobs[0].url)
+
+  let gridUrl = (await response.json()).grid
+  let substring = gridUrl.split("/")
+  let timestamp = Number(
+    substring[substring.length - 1].split(".")[0].split("-")[0],
+  )
 
   // Retrieves all pixels from subgraph and save an entirely knew PNG
   const client = createClient({
@@ -72,13 +78,19 @@ export default async function handler(
       .pipe(createWriteStream(`/tmp/${fileName}`))
       .on("finish", async () => {
         let file = createReadStream(`/tmp/${fileName}`)
-        try {
-          await put(fileName, file, {
-            access: "public",
+
+        let response = await put(fileName, file, {
+          access: "public",
+        })
+        const { blobs } = await list({ prefix: `grid` })
+        if (blobs.length > 0)
+          blobs.forEach(async (blob) => {
+            await del(blob.url)
           })
-        } catch (e) {
-          console.log(e)
-        }
+        await put("grid.json", JSON.stringify({ grid: response.url }), {
+          access: "public",
+        })
+
         await unlink(fileName, () => {})
       })
   })

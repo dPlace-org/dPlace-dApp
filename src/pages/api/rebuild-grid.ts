@@ -84,38 +84,3 @@ export default async function handler(
     })
   res.status(200).json({ message: "Grid rebuilt!" })
 }
-
-// let s3Client = new S3Client({
-//   region: "us-east-1",
-//   credentials: {
-//     accessKeyId: process.env.AWS_ACCESS_KEY,
-//     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-//   },
-// })
-
-// let fileName = timestamp + ".png"
-// png
-//   .pack()
-//   .pipe(createWriteStream(`/tmp/${fileName}`))
-//   .on("finish", async () => {
-//     let file = createReadStream(`/tmp/${fileName}`)
-//     try {
-//       //configuring parameters
-//       var params = {
-//         Bucket: process.env.S3_BUCKET_NAME,
-//         Body: file,
-//         Key: fileName,
-//       }
-
-//       const command = new PutObjectCommand(params)
-
-//       const response = await s3Client.send(command)
-
-//       console.log(response)
-//     } catch (e) {
-//       console.log(e)
-//     }
-//     await unlink(fileName, () => {})
-//   })
-// res.status(200).json({ message: "Grid rebuilt!" })
-// }
