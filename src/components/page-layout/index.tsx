@@ -1,7 +1,7 @@
 import { Container, ContainerProps } from "@chakra-ui/react"
 import { motion, Variants } from "framer-motion"
 import { NextSeo } from "next-seo"
-import { ReactNode, useEffect, useState } from "react"
+import { ReactNode } from "react"
 
 const variants: Variants = {
   hidden: {
@@ -33,22 +33,6 @@ type PageProps = {
 const MotionContainer = motion<ContainerProps>(Container)
 
 const PageLayout = ({ title, description, children }: PageProps) => {
-  const [cachedGrid, setCachedGridUrl] = useState("")
-  useEffect(() => {
-    const handler = async () => {
-      try {
-        let response = await fetch("/api/retrieve-grid")
-        let url = await response.json()
-        if (!url.message) setCachedGridUrl("/assets/images/grid-0.png")
-        setCachedGridUrl(url.message)
-      } catch (e) {
-        console.log(e)
-        setCachedGridUrl("/assets/images/grid-0.png")
-      }
-    }
-    handler()
-  }, [])
-
   return (
     <>
       <NextSeo
@@ -65,9 +49,9 @@ const PageLayout = ({ title, description, children }: PageProps) => {
           locale: "en_US",
           images: [
             {
-              url: cachedGrid,
-              width: 1000,
-              height: 1000,
+              url: "/assets/images/logo-orange.png",
+              width: 860,
+              height: 275,
               alt: "dPlace Grid",
               type: "image/png",
             },
