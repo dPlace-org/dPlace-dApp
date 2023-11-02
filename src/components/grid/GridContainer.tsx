@@ -1,9 +1,5 @@
 import {
   Center,
-  Drawer,
-  DrawerBody,
-  DrawerContent,
-  DrawerOverlay,
   Spinner,
   Stack,
   useBreakpointValue,
@@ -21,15 +17,13 @@ import { DPlaceGrid__factory } from "types"
 import { useGetPixels } from "../../utils/Subgraph"
 import Grid, { Pixel } from "./Grid"
 import GridControls from "./GridControls"
-import OwnedPixels from "./OwnedPixels"
-import PixelMenu from "./PixelMenu"
-import SelectedPixel from "./SelectedPixel"
 import StencilManager from "./StencilManager"
 
 export default function GridContainer() {
   let gridAddress = process.env.NEXT_PUBLIC_GRID_ADDRESS
   const maxPixels = 200
   const pixelSize = 2
+  const gridSize = 2000
   const [block, setBlock] = useState<number>(0)
   const [selectedColor, setSelectedColor] = useState("#FF4500")
   const [tool, setTool] = useState("move")
@@ -45,13 +39,11 @@ export default function GridContainer() {
   const [storagePixels, saveStoragePixels] = useLocalStorage("pixels", [])
   const [_loading, setLoading] = useState(false)
   const [updatedPixels, setUpdatedPixels] = useState<Pixel[]>([])
-  const [gridSize, setGridSize] = useState(0)
   const [currentStencil, setCurrentStencil] = useState(null)
   const toast = useToast()
   const { getPixels, loading: subgraphPixelsLoading } = useGetPixels()
   const transformComponentRef = useRef<ReactZoomPanPinchRef | null>(null)
   const updateCanvasRef = useRef<HTMLCanvasElement>(null)
-  const highlightCanvasRef = useRef<HTMLCanvasElement>(null)
   const drawingCanvasRef = useRef<HTMLCanvasElement>(null)
   const stencilCanvasRef = useRef<HTMLCanvasElement>(null)
   const [drawingCanvas, setDrawingCanvas] =
@@ -59,8 +51,6 @@ export default function GridContainer() {
   const [stencilCanvas, setStencilCanvas] =
     useState<CanvasRenderingContext2D | null>(null)
   const [updateCanvas, setUpdateCanvas] =
-    useState<CanvasRenderingContext2D | null>(null)
-  const [highlightCanvas, setHighlightCanvas] =
     useState<CanvasRenderingContext2D | null>(null)
   const router = useRouter()
   const { contract } = useContract(gridAddress, DPlaceGrid__factory.abi)
@@ -113,22 +103,20 @@ export default function GridContainer() {
     if (
       drawingCanvasRef.current &&
       updateCanvasRef.current &&
-      highlightCanvasRef.current &&
       stencilCanvasRef.current
     ) {
       let _canvas = drawingCanvasRef.current.getContext("2d")
       _canvas.shadowBlur = 0
       setDrawingCanvas(_canvas)
       setUpdateCanvas(updateCanvasRef.current.getContext("2d"))
-      setHighlightCanvas(highlightCanvasRef.current.getContext("2d"))
       setStencilCanvas(stencilCanvasRef.current.getContext("2d"))
     }
-  }, [drawingCanvasRef, updateCanvasRef, highlightCanvasRef, stencilCanvasRef])
+  }, [drawingCanvasRef, updateCanvasRef, stencilCanvasRef])
 
   // open drawers on desktop load
   useEffect(() => {
     if (!isMobile) {
-      onPixelMenuOpen()
+      // onPixelMenuOpen()
     }
   }, [isMobile])
 
@@ -152,13 +140,13 @@ export default function GridContainer() {
 
   // draw pixels from storage
   useEffect(() => {
-    if (storagePixels && saveStoragePixels && updateCanvas) {
+    if (storagePixels && saveStoragePixels && drawingCanvas) {
       setUpdatedPixels(storagePixels)
       for (let i = 0; i < storagePixels.length; i++) {
         let pixel = storagePixels[i]
         setTimeout(() => {
-          updateCanvas.fillStyle = pixel.color
-          updateCanvas.fillRect(
+          drawingCanvas.fillStyle = pixel.color
+          drawingCanvas.fillRect(
             pixel.x * pixelSize,
             pixel.y * pixelSize,
             pixelSize,
@@ -167,19 +155,23 @@ export default function GridContainer() {
         }, 10)
       }
     }
-  }, [saveStoragePixels, updateCanvas])
+  }, [saveStoragePixels, drawingCanvas])
 
-  // draw canvas from subgraph
+  // draw pixels from subgraph
   useEffect(() => {
     if (!cachedGridUrl) return
     var gridImage = new Image()
     gridImage.src = cachedGridUrl
     gridImage.onload = async () => {
-      setGridSize(gridImage.width * pixelSize)
-      if (drawingCanvas) {
-        centerCanvasOnPixel({ x: 500, y: 500 }, 0.5)
-        drawingCanvas.imageSmoothingEnabled = false
-        drawingCanvas.drawImage(gridImage, 0, 0, gridSize, gridSize)
+      if (updateCanvas) {
+        if (storagePixels.length > 0) {
+          centerCanvasOnPixel(storagePixels[0], 4)
+          setTool("paint")
+        } else if (!currentStencil) {
+          centerCanvasOnPixel({ x: 500, y: 500 }, 1)
+        }
+        updateCanvas.imageSmoothingEnabled = false
+        updateCanvas.drawImage(gridImage, 0, 0, gridSize, gridSize)
         // Catch up grid from subgraph
         let timestamp = getTimestampFromUrl(cachedGridUrl)
         let pixels = await getPixels(timestamp)
@@ -189,7 +181,7 @@ export default function GridContainer() {
         }
       }
     }
-  }, [cachedGridUrl, gridSize, drawingCanvas])
+  }, [cachedGridUrl, updateCanvas])
 
   // draw pixels from chain events
   useEffect(() => {
@@ -207,7 +199,7 @@ export default function GridContainer() {
 
   // manual pixel addition from catchup functions
   function addNewPixel(pixel: Pixel) {
-    if (!drawingCanvas) return
+    if (!updateCanvas) return
 
     let newPixelIndex = newPixels.findIndex(
       (_pixel) => _pixel.x === pixel.x && _pixel.y === pixel.y,
@@ -218,11 +210,11 @@ export default function GridContainer() {
     let x = pixel.x
     let y = pixel.y
     let color = pixel.color
-    // draw pixel on drawingCanvas
+    // draw pixel on updateCanvas
 
     if (color) {
-      drawingCanvas.fillStyle = color
-      drawingCanvas.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize)
+      updateCanvas.fillStyle = color
+      updateCanvas.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize)
     }
 
     if (newPixelIndex !== -1) {
@@ -241,6 +233,10 @@ export default function GridContainer() {
       description: `You have successfully claimed ${updatedPixels.length} pixels!`,
       status: "success",
       isClosable: true,
+      position: "top-right",
+      containerStyle: {
+        marginTop: "120px",
+      },
     })
     saveUpdatePixels([])
   }
@@ -272,11 +268,11 @@ export default function GridContainer() {
     saveStoragePixels([...pixels])
   }
 
-  function clearUpdatedPixels() {
-    if (!updateCanvas) return
+  function clearDrawnPixels() {
+    if (!drawingCanvas) return
     setShowColorPicker(false)
     saveUpdatePixels([])
-    updateCanvas.clearRect(0, 0, gridSize, gridSize)
+    drawingCanvas.clearRect(0, 0, gridSize, gridSize)
   }
 
   function centerCanvasOnPixel(pixel: Pixel, scale: number) {
@@ -298,7 +294,7 @@ export default function GridContainer() {
   }
 
   function removeUpdatedPixel(x: number, y: number) {
-    updateCanvas.clearRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize)
+    drawingCanvas.clearRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize)
 
     let index = updatedPixels.findIndex(
       (pixel) => pixel.x === x && pixel.y === y,
@@ -318,7 +314,6 @@ export default function GridContainer() {
         hasStencil={hasStencil}
         drawingCanvasRef={drawingCanvasRef}
         updateCanvasRef={updateCanvasRef}
-        highlightCanvasRef={highlightCanvasRef}
         stencilCanvasRef={stencilCanvasRef}
         transformComponentRef={transformComponentRef}
         pixelSize={pixelSize}
@@ -329,6 +324,7 @@ export default function GridContainer() {
         setTool={setTool}
         hideStencil={hideStencil}
         selectedColor={selectedColor}
+        selectedPixel={selectedPixel}
         onPixelMenuOpen={onPixelMenuOpen}
         saveUpdatePixels={saveUpdatePixels}
         setSelectedPixel={setSelectedPixel}
@@ -349,7 +345,7 @@ export default function GridContainer() {
       <GridControls
         tool={tool}
         setTool={setTool}
-        hasUpdatedPixels={updatedPixels.length > 0}
+        updatedPixels={updatedPixels}
         hasStencil={hasStencil}
         showingStencil={!hideStencil}
         showColorPicker={showColorPicker}
@@ -358,48 +354,13 @@ export default function GridContainer() {
         togglePixelMenu={togglePixelMenu}
         centerCanvasOnPixel={centerCanvasOnPixel}
         setSelectedColor={setSelectedColor}
-        clearUpdatedPixels={clearUpdatedPixels}
+        clearDrawnPixels={clearDrawnPixels}
         setShowColorPicker={setShowColorPicker}
         toggleStencil={toggleStencil}
         toggleShowStencil={toggleShowStencil}
+        setLoading={setLoading}
+        confirmClaimPixels={confirmClaimPixels}
       />
-      <Drawer
-        placement={"left"}
-        onClose={onPixelMenuClose}
-        isOpen={isPixelMenuOpen}
-        closeOnOverlayClick={false}
-        blockScrollOnMount={false}
-      >
-        <DrawerOverlay display="none" />
-        <DrawerContent containerProps={{ width: "0" }}>
-          <DrawerBody bgColor="#FF4500" mt="5.5em" p="1em" pt="0 !important">
-            <Stack
-              w="100%"
-              bgColor="transparent"
-              h="100%"
-              justifyContent={"space-between"}
-            >
-              <Stack>
-                <PixelMenu
-                  confirmClaimPixels={confirmClaimPixels}
-                  removePixel={removeUpdatedPixel}
-                  updatedPixels={updatedPixels}
-                  maxPixels={maxPixels}
-                  setLoading={setLoading}
-                />
-                <OwnedPixels centerOn={centerCanvasOnPixel} />
-              </Stack>
-              {selectedPixel && (
-                <SelectedPixel
-                  pixel={selectedPixel}
-                  setUpdateColor={setSelectedColor}
-                />
-              )}
-            </Stack>
-          </DrawerBody>
-        </DrawerContent>
-      </Drawer>
-
       <StencilManager
         pixelSize={pixelSize}
         isOpen={isStencilOpen}

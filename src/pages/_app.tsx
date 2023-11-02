@@ -6,7 +6,6 @@ import {
   coinbaseWallet,
   magicLink,
   metamaskWallet,
-  smartWallet,
   ThirdwebProvider,
   walletConnect,
 } from "@thirdweb-dev/react"
@@ -24,41 +23,31 @@ const App = ({ Component, pageProps }: AppProps) => {
     },
   })
 
-  let wallets = []
-  if (process.env.NEXT_PUBLIC_SMART_ACCOUNTS == "true") {
-    wallets = [
-      smartWallet(magicLinkConfig, {
-        factoryAddress: process.env.NEXT_PUBLIC_ACCOUNT_FACTORY_ADDRESS,
-        gasless: false,
-      }),
-      smartWallet(metamaskWallet(), {
-        factoryAddress: process.env.NEXT_PUBLIC_ACCOUNT_FACTORY_ADDRESS,
-        gasless: false,
-      }),
-      smartWallet(coinbaseWallet(), {
-        factoryAddress: process.env.NEXT_PUBLIC_ACCOUNT_FACTORY_ADDRESS,
-        gasless: false,
-      }),
-      smartWallet(walletConnect(), {
-        factoryAddress: process.env.NEXT_PUBLIC_ACCOUNT_FACTORY_ADDRESS,
-        gasless: false,
-      }),
-    ]
-  } else {
-    wallets = [
-      magicLinkConfig,
-      metamaskWallet(),
-      coinbaseWallet(),
-      walletConnect(),
-    ]
-  }
+  let wallets = [
+    magicLinkConfig,
+    metamaskWallet(),
+    coinbaseWallet(),
+    walletConnect(),
+  ]
 
   return (
     <ChakraProvider theme={theme}>
       <ThirdwebProvider
         supportedWallets={wallets}
         clientId={process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID}
-        supportedChains={[Base, BaseGoerli, Localhost]}
+        supportedChains={[
+          process.env.NEXT_PUBLIC_TESTNET == "true"
+            ? BaseGoerli
+            : process.env.NODE_ENV == "development"
+            ? Localhost
+            : Base,
+        ]}
+        autoConnect={true}
+        sdkOptions={{
+          readonlySettings: {
+            rpcUrl: process.env.NEXT_PUBLIC_RPC_URL,
+          },
+        }}
         activeChain={
           process.env.NEXT_PUBLIC_TESTNET == "true"
             ? "base-goerli"

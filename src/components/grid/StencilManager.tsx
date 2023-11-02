@@ -4,6 +4,7 @@ import {
   Divider,
   Drawer,
   DrawerBody,
+  DrawerCloseButton,
   DrawerContent,
   FormControl,
   FormLabel,
@@ -275,6 +276,7 @@ export default function StencilManager({
     >
       <DrawerContent containerProps={{ width: "0" }} overflow="scroll">
         <DrawerBody bgColor="#FF4500" mt="5.5em" p="1em" pt="0 !important">
+          <DrawerCloseButton mt="90px" mr="1em" />
           <Stack
             w="100%"
             bgColor="transparent"

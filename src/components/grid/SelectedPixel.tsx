@@ -9,7 +9,7 @@ import {
   Text,
   Tooltip,
 } from "@chakra-ui/react"
-import { useSigner } from "@thirdweb-dev/react"
+import { useContract, useSigner } from "@thirdweb-dev/react"
 import { ethers } from "ethers"
 import { useEffect, useState } from "react"
 import Countdown from "react-countdown"
@@ -19,13 +19,7 @@ import { getTextForColor } from "../../utils/utils"
 import Identicon from "../identicon"
 import { Pixel } from "./Grid"
 
-export default function SelectedPixel({
-  pixel,
-  setUpdateColor,
-}: {
-  pixel: Pixel | null
-  setUpdateColor: (val: string) => void
-}) {
+export default function SelectedPixel({ pixel }: { pixel: Pixel | null }) {
   const gridAddress = process.env.NEXT_PUBLIC_GRID_ADDRESS
   const [price, setPrice] = useState<string>("0.0")
   const [owner, setOwner] = useState<string>("--")
@@ -34,6 +28,8 @@ export default function SelectedPixel({
   const [halvingTime, setHalvingTime] = useState<number>(0)
   const { getPixel, initialized, loading: pixelLoading } = useGetPixel()
   const { usdPrice } = useCalculatePriceUSD({ ethAmount: price })
+  const { contract } = useContract(gridAddress, DPlaceGrid__factory.abi)
+
   const signer = useSigner()
 
   const loading = pixelLoading || _loading
@@ -41,14 +37,16 @@ export default function SelectedPixel({
   useEffect(() => {
     let handler = async () => {
       let _pixel = await getPixel(pixel.x, pixel.y)
+      console.log(_pixel)
       if (_pixel) {
         setLoading(true)
-        let grid = DPlaceGrid__factory.connect(gridAddress, signer)
-        let _price = await grid.calculatePixelPrice(pixel.x, pixel.y)
+        let _price = await contract.call("calculatePixelPrice", [
+          pixel.x,
+          pixel.y,
+        ])
         setPrice(ethers.utils.formatEther(_price))
         setOwner(_pixel.owner)
         setColor(_pixel.color)
-        setUpdateColor(_pixel.color)
         setHalvingTime(calculateNextHalving(_pixel))
         setLoading(false)
         return
@@ -58,8 +56,8 @@ export default function SelectedPixel({
       setPrice("0.0")
       setHalvingTime(null)
     }
-    if (pixel && initialized && signer) handler()
-  }, [pixel, initialized, signer])
+    if (pixel && initialized) handler()
+  }, [pixel, initialized])
 
   const calculateNextHalving = (pixel: Pixel) => {
     let halvingsPassed =
@@ -71,12 +69,7 @@ export default function SelectedPixel({
   }
 
   return (
-    <Stack
-      mt="1em"
-      placeContent={"center"}
-      bgColor="white"
-      boxShadow="0 10px 10px rgb(0 0 0 / 0.2)"
-    >
+    <Stack mt="1em" placeContent={"center"}>
       {loading ? (
         <Center h="100%" py="178.5px">
           <Spinner />

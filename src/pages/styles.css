@@ -22,3 +22,7 @@ input:focus {
   outline: none;
   border-color: "transparent !important";
 }
+
+body {
+  height: 100dvh;
+}

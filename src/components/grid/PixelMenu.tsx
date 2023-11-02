@@ -233,6 +233,10 @@ export default function PixelMenu(props: ManagePixelsProps) {
                   "Something went wrong. make sure you have enough funds and try again!",
                 status: "error",
                 isClosable: true,
+                position: "top-right",
+                containerStyle: {
+                  marginTop: "120px",
+                },
               })
               return
             }
