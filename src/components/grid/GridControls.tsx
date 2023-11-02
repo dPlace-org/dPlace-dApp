@@ -12,6 +12,7 @@ import {
   Text,
   Tooltip,
   useBreakpointValue,
+  useDisclosure,
   useToast,
 } from "@chakra-ui/react"
 import { useContract, useSigner, Web3Button } from "@thirdweb-dev/react"
@@ -41,6 +42,7 @@ import useEyeDropper from "use-eye-dropper"
 import { useCalculatePriceUSD } from "../../utils/Price"
 import { getColorOrDefault } from "../../utils/utils"
 import { Pixel } from "./Grid"
+import OwnedPixels from "./OwnedPixels"
 
 interface Props {
   tool: string
@@ -49,9 +51,7 @@ interface Props {
   hasStencil: boolean
   showingStencil: boolean
   showColorPicker: boolean
-  isPixelsMenuOpen: boolean
   selectedColor: string
-  togglePixelMenu: () => void
   centerCanvasOnPixel: (pixel: Pixel, scale: number) => void
   setSelectedColor: (color: string) => void
   clearDrawnPixels(): void
@@ -99,6 +99,12 @@ export default function GridControls({
   const signer = useSigner()
   const { usdPrice } = useCalculatePriceUSD({ ethAmount: price })
 
+  const {
+    isOpen: isOwnedOpen,
+    onOpen: onOwnedOpen,
+    onClose: onOwnedClose,
+  } = useDisclosure()
+
   let xs = updatedPixels.map((pixel) => pixel.x)
   let ys = updatedPixels.map((pixel) => pixel.y)
 
@@ -106,6 +112,7 @@ export default function GridControls({
     // Using async/await (can be used as a promise as-well)
     const openPicker = async () => {
       try {
+        setShowColorPicker(false)
         const color = await open()
         setSelectedColor(color.sRGBHex)
         setTool("paint")
@@ -191,7 +198,7 @@ export default function GridControls({
               aria-label="owned"
               icon={<Icon as={BiSolidGridAlt} />}
               onClick={() => {
-                // TODO: open owned pixels drawer
+                isOwnedOpen ? onOwnedClose() : onOwnedOpen()
                 setShowColorPicker(false)
               }}
             />
@@ -278,6 +285,11 @@ export default function GridControls({
           </>
         )
       )}
+      <OwnedPixels
+        isOpen={isOwnedOpen}
+        onClose={onOwnedClose}
+        centerOn={centerCanvasOnPixel}
+      />
     </Stack>
   )
 
@@ -396,7 +408,10 @@ export default function GridControls({
             )}
             <Stack alignSelf={{ md: "flex-end", sm: "center" }}>
               {priceLoading ? (
-                <Spinner size="sm" />
+                <HStack>
+                  <span style={{ fontFamily: "minecraft" }}>Total:</span>
+                  <Spinner size="sm" />
+                </HStack>
               ) : (
                 <Text my="-4px" fontSize={"1em"}>
                   <span style={{ fontFamily: "minecraft" }}>Total:</span>

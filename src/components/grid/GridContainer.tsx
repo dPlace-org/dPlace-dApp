@@ -72,11 +72,6 @@ export default function GridContainer() {
   let hasStencil = currentStencil != undefined
 
   const {
-    isOpen: isPixelMenuOpen,
-    onOpen: onPixelMenuOpen,
-    onClose: onPixelMenuClose,
-  } = useDisclosure()
-  const {
     isOpen: isStencilOpen,
     onOpen: onStencilOpen,
     onClose: onStencilClose,
@@ -255,14 +250,6 @@ export default function GridContainer() {
     setHideStencil(!hideStencil)
   }
 
-  function togglePixelMenu() {
-    if (isPixelMenuOpen) {
-      onPixelMenuClose()
-    } else {
-      onPixelMenuOpen()
-    }
-  }
-
   function saveUpdatePixels(pixels: Pixel[]) {
     setUpdatedPixels([...pixels])
     saveStoragePixels([...pixels])
@@ -320,12 +307,10 @@ export default function GridContainer() {
         updatedPixels={updatedPixels}
         maxPixels={maxPixels}
         gridSize={gridSize}
-        isPixelMenuOpen={isPixelMenuOpen}
         setTool={setTool}
         hideStencil={hideStencil}
         selectedColor={selectedColor}
         selectedPixel={selectedPixel}
-        onPixelMenuOpen={onPixelMenuOpen}
         saveUpdatePixels={saveUpdatePixels}
         setSelectedPixel={setSelectedPixel}
         centerCanvasOnPixel={centerCanvasOnPixel}
@@ -349,9 +334,7 @@ export default function GridContainer() {
         hasStencil={hasStencil}
         showingStencil={!hideStencil}
         showColorPicker={showColorPicker}
-        isPixelsMenuOpen={isPixelMenuOpen}
         selectedColor={selectedColor}
-        togglePixelMenu={togglePixelMenu}
         centerCanvasOnPixel={centerCanvasOnPixel}
         setSelectedColor={setSelectedColor}
         clearDrawnPixels={clearDrawnPixels}

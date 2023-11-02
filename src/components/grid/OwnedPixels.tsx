@@ -7,8 +7,12 @@ import { Pixel } from "./Grid"
 
 export default function OwnedPixels({
   centerOn,
+  isOpen,
+  onClose,
 }: {
   centerOn: (pixel: Pixel, scale: number) => void
+  isOpen: boolean
+  onClose: () => void
 }) {
   const [ownedPixels, setOwnedPixels] = useState<Pixel[]>([])
   const [fetched, setFetched] = useState(false)
@@ -28,16 +32,13 @@ export default function OwnedPixels({
   }, [signer, getOwnedPixels])
 
   return (
-    <Stack
-      bgColor="white"
-      boxShadow="inset 0px 5px 5px rgb(0 0 0 / 28%)"
-      p="1em"
-    >
+    <Stack pos="absolute" top="-150px" display={isOpen ? "" : "none"}>
       <Heading
         mt="10px"
         fontSize={"1.5em"}
         fontFamily="minecraft"
         letterSpacing={"1px"}
+        w="fit-content"
       >
         Owned Pixels
       </Heading>
@@ -47,6 +48,7 @@ export default function OwnedPixels({
         pt="1.5em"
         mt="-.5em"
         minH="105px"
+        w="25em"
       >
         {loading && <Spinner />}
         {ownedPixels.length === 0 && (
@@ -65,6 +67,7 @@ export default function OwnedPixels({
               alignItems={"center"}
               justifyContent={"center"}
               onClick={() => {
+                onClose()
                 centerOn(pixel, 20)
               }}
               cursor="pointer"

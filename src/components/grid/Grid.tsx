@@ -30,11 +30,9 @@ interface GridProps {
   updatedPixels: Pixel[]
   maxPixels: number
   gridSize: number
-  isPixelMenuOpen: boolean
   hideStencil: boolean
   selectedColor: string
   selectedPixel: Pixel
-  onPixelMenuOpen: () => void
   saveUpdatePixels: (pixels: Pixel[]) => void
   setSelectedPixel: (pixel: Pixel) => void
   centerCanvasOnPixel: (pixel: Pixel, scale: number) => void
