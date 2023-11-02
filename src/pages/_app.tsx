@@ -9,6 +9,7 @@ import {
   ThirdwebProvider,
   walletConnect,
 } from "@thirdweb-dev/react"
+import { Analytics } from "@vercel/analytics/react"
 import { AppProps } from "next/app"
 import Fonts from "../theme/Fonts"
 import "./styles.css"
@@ -60,6 +61,7 @@ const App = ({ Component, pageProps }: AppProps) => {
         <Layout>
           <Component {...pageProps} />
         </Layout>
+        <Analytics />
       </ThirdwebProvider>
     </ChakraProvider>
   )
