@@ -37,7 +37,6 @@ export default function SelectedPixel({ pixel }: { pixel: Pixel | null }) {
   useEffect(() => {
     let handler = async () => {
       let _pixel = await getPixel(pixel.x, pixel.y)
-      console.log(_pixel)
       if (_pixel) {
         setLoading(true)
         let _price = await contract.call("calculatePixelPrice", [
