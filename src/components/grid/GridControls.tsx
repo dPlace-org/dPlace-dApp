@@ -16,6 +16,7 @@ import {
   useToast,
 } from "@chakra-ui/react"
 import { useContract, useSigner, Web3Button } from "@thirdweb-dev/react"
+import { track } from "@vercel/analytics"
 import { ethers } from "ethers"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { HexColorPicker } from "react-colorful"
@@ -458,6 +459,11 @@ export default function GridControls({
                         gasPrice: gasPrice,
                       })
                     ).wait()
+                    track("pixels-claimed", {
+                      signer: await signer?.getAddress(),
+                      pixels: xs.length,
+                      cost: newestPrice.toString(),
+                    })
                     setLoading(false)
                   } catch (e: any) {
                     console.log(e)
@@ -472,6 +478,10 @@ export default function GridControls({
                       containerStyle: {
                         marginTop: "120px",
                       },
+                    })
+                    track("pixel-claim-error", {
+                      signer: await signer?.getAddress(),
+                      pixels: xs.length,
                     })
                     return
                   }

@@ -1,6 +1,5 @@
 import theme from "@/theme"
 import { ColorModeScript } from "@chakra-ui/react"
-import { Analytics } from "@vercel/analytics/react"
 import Document, { Head, Html, Main, NextScript } from "next/document"
 
 class Doc extends Document {
@@ -12,7 +11,6 @@ class Doc extends Document {
           <ColorModeScript initialColorMode={theme.config.initialColorMode} />
           <Main />
           <NextScript />
-          <Analytics />
         </body>
       </Html>
     )
