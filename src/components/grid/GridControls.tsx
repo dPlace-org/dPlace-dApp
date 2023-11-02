@@ -460,9 +460,9 @@ export default function GridControls({
                       })
                     ).wait()
                     track("pixels-claimed", {
-                      signer: await signer?.getAddress(),
-                      pixels: xs.length,
-                      cost: newestPrice.toString(),
+                      // signer: await signer?.getAddress(),
+                      // pixels: xs.length,
+                      // cost: newestPrice.toString(),
                     })
                     setLoading(false)
                   } catch (e: any) {
@@ -480,8 +480,8 @@ export default function GridControls({
                       },
                     })
                     track("pixel-claim-error", {
-                      signer: await signer?.getAddress(),
-                      pixels: xs.length,
+                      // signer: await signer?.getAddress(),
+                      // pixels: xs.length,
                     })
                     return
                   }
