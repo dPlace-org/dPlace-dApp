@@ -20,7 +20,7 @@ const App = ({ Component, pageProps }: AppProps) => {
     smsLogin: true,
     apiKey: process.env.NEXT_PUBLIC_MAGICLINK_API_KEY,
     oauthOptions: {
-      providers: ["twitter", "google", "apple"],
+      providers: ["twitter", "google"],
     },
   })
 
