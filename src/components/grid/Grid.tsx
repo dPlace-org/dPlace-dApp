@@ -242,7 +242,7 @@ export default function Grid({
 
   return (
     <>
-      <Stack w="100%" maxH={"calc(100vh - 88px)"} mt="88px">
+      <Stack w="100%" maxH={"calc(100dvh - 88px)"} mt="88px">
         <TransformWrapper
           ref={transformComponentRef}
           limitToBounds={false}

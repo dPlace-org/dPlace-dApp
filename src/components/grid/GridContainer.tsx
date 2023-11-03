@@ -295,7 +295,7 @@ export default function GridContainer() {
   }
 
   return (
-    <Stack>
+    <Stack overflowY="hidden">
       <Grid
         tool={tool}
         hasStencil={hasStencil}
