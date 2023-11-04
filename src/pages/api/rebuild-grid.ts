@@ -1,10 +1,10 @@
+import { getAllPixelsAfter } from "@/utils/Subgraph"
 import { del, list, put } from "@vercel/blob"
 import Color from "color"
 import { createReadStream, createWriteStream, unlink } from "fs"
 import type { NextApiRequest, NextApiResponse } from "next"
 import { PNG } from "pngjs"
 import { cacheExchange, createClient, fetchExchange } from "urql"
-import { getPixels } from "../../utils/Subgraph"
 
 type ResponseData = {
   message: string
@@ -21,24 +21,8 @@ export default async function handler(
     exchanges: [cacheExchange, fetchExchange],
     requestPolicy: "network-only",
   })
-  let done = false
-  let pixels = []
-  let page = 0
-  let pageSize = 1000
 
-  try {
-    while (!done) {
-      let _pixels = await getPixels(client, 0, page, pageSize)
-      pixels = [...pixels, ..._pixels]
-      if (_pixels.length < pageSize) {
-        done = true
-      }
-      page++
-    }
-  } catch (e) {
-    console.log(e)
-    return
-  }
+  let pixels = await getAllPixelsAfter(client, 0)
 
   var png = new PNG({
     width: 1000,
@@ -46,7 +30,6 @@ export default async function handler(
   })
 
   let timestamp = 0
-
   pixels.forEach((pixel) => {
     var idx = (png.width * Number(pixel.y) + Number(pixel.x)) << 2
     if (pixel.lastUpdated > timestamp) {

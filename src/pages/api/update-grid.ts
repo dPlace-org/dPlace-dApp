@@ -1,4 +1,4 @@
-import { getPixels } from "@/utils/Subgraph"
+import { getAllPixelsAfter } from "@/utils/Subgraph"
 import { del, list, put } from "@vercel/blob"
 import Color from "color"
 import { createReadStream, createWriteStream, unlink } from "fs"
@@ -33,24 +33,8 @@ export default async function handler(
     exchanges: [cacheExchange, fetchExchange],
     requestPolicy: "network-only",
   })
-  let done = false
-  let pixels = []
-  let page = 0
-  let pageSize = 1000
 
-  try {
-    while (!done) {
-      let _pixels = await getPixels(client, timestamp, page, pageSize)
-      pixels = [...pixels, ..._pixels]
-      if (_pixels.length < pageSize) {
-        done = true
-      }
-      page++
-    }
-  } catch (e) {
-    console.log(e)
-    return
-  }
+  let pixels = await getAllPixelsAfter(client, timestamp)
 
   let newTimestamp = 0
 

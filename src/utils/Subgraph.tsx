@@ -87,6 +87,48 @@ export async function getPixel(
     })
 }
 
+export async function getAllPixelsAfter(
+  client: Client,
+  timestamp: number,
+): Promise<Pixel[]> {
+  const q = `
+  query getPixels($lastId: String!, $timestamp: Int!) {
+    pixels(first: 1000, where: { and : [ { id_gt: $lastId }, { lastUpdated_gte: $timestamp}]}) {
+      id
+      x
+      y
+      owner
+      color
+      price
+      lastUpdated
+    }
+  }`
+
+  let lastId = ""
+  let pixels = []
+  let done = false
+  while (!done) {
+    let newPixels = await client
+      .query(q, { lastId, timestamp })
+      .toPromise()
+      .then((result) => result.data.pixels)
+      .catch((err) => {
+        console.log(err)
+        return null
+      })
+    if (newPixels == null) {
+      done = true
+      continue
+    }
+    pixels = [...pixels, ...newPixels]
+    if (newPixels.length < 1000) {
+      done = true
+    }
+    lastId = newPixels[newPixels.length - 1].id
+  }
+  return pixels
+}
+
 export const useGetPixel = (): {
   getPixel: (x: Number, y: Number) => Promise<Pixel>
   loading: boolean

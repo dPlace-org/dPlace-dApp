@@ -262,7 +262,7 @@ export default function StencilManager({
       let centerX = x + width / 2
       let centerY = y + (stencilImage.height * sizeRatio) / 2
       setCurrentStencil(_stencil)
-      centerOn({ x: centerX, y: centerY }, getScaleForWidth(width))
+      centerOn({ x: centerX, y: centerY }, getScaleForWidth(width) * pixelSize)
     }
   }
 

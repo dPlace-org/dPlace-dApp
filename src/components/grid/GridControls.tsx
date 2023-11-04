@@ -408,21 +408,23 @@ export default function GridControls({
               />
             )}
             <Stack alignSelf={{ md: "flex-end", sm: "center" }}>
-              {priceLoading ? (
-                <HStack>
-                  <span style={{ fontFamily: "minecraft" }}>Total:</span>
-                  <Spinner size="sm" />
-                </HStack>
-              ) : (
-                <Text my="-4px" fontSize={"1em"}>
-                  <span style={{ fontFamily: "minecraft" }}>Total:</span>
-                  <span style={{ fontWeight: "initial" }}> Ξ{price}</span>
-                  <span style={{ fontSize: "12px", color: "#bdbdbd" }}>
-                    {" "}
-                    (${usdPrice})
-                  </span>
-                </Text>
-              )}
+              <Stack minH={{ md: "1.5em", sm: "5em" }}>
+                {priceLoading ? (
+                  <HStack>
+                    <span style={{ fontFamily: "minecraft" }}>Total:</span>
+                    <Spinner size="sm" />
+                  </HStack>
+                ) : (
+                  <Text my="-2px" fontSize={"1em"}>
+                    <span style={{ fontFamily: "minecraft" }}>Total:</span>
+                    <span style={{ fontWeight: "initial" }}> Ξ{price}</span>
+                    <span style={{ fontSize: "12px", color: "#bdbdbd" }}>
+                      {" "}
+                      (${usdPrice})
+                    </span>
+                  </Text>
+                )}
+              </Stack>
               <Web3Button
                 contractAddress={gridAddress}
                 contractAbi={DPlaceGrid__factory.abi}
