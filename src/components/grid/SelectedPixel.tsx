@@ -19,7 +19,13 @@ import { getTextForColor } from "../../utils/utils"
 import Identicon from "../identicon"
 import { Pixel } from "./Grid"
 
-export default function SelectedPixel({ pixel }: { pixel: Pixel | null }) {
+export default function SelectedPixel({
+  pixel,
+  setSelectedColor,
+}: {
+  pixel: Pixel | null
+  setSelectedColor: (val: string) => void
+}) {
   const gridAddress = process.env.NEXT_PUBLIC_GRID_ADDRESS
   const [price, setPrice] = useState<string>("0.0")
   const [owner, setOwner] = useState<string>("--")
@@ -46,6 +52,7 @@ export default function SelectedPixel({ pixel }: { pixel: Pixel | null }) {
         setPrice(ethers.utils.formatEther(_price))
         setOwner(_pixel.owner)
         setColor(_pixel.color)
+        setSelectedColor(_pixel.color)
         setHalvingTime(calculateNextHalving(_pixel))
         setLoading(false)
         return

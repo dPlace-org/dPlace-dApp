@@ -311,6 +311,7 @@ export default function GridContainer() {
         hideStencil={hideStencil}
         selectedColor={selectedColor}
         selectedPixel={selectedPixel}
+        setSelectedColor={setSelectedColor}
         saveUpdatePixels={saveUpdatePixels}
         setSelectedPixel={setSelectedPixel}
         centerCanvasOnPixel={centerCanvasOnPixel}

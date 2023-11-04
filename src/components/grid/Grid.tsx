@@ -33,6 +33,7 @@ interface GridProps {
   hideStencil: boolean
   selectedColor: string
   selectedPixel: Pixel
+  setSelectedColor: (val: string) => void
   saveUpdatePixels: (pixels: Pixel[]) => void
   setSelectedPixel: (pixel: Pixel) => void
   centerCanvasOnPixel: (pixel: Pixel, scale: number) => void
@@ -55,6 +56,7 @@ export default function Grid({
   hideStencil,
   selectedColor,
   selectedPixel,
+  setSelectedColor,
   centerCanvasOnPixel,
   saveUpdatePixels,
   setSelectedPixel,
@@ -334,7 +336,10 @@ export default function Grid({
         <ModalContent>
           <ModalCloseButton />
           <ModalBody p="0">
-            <SelectedPixel pixel={selectedPixel} />
+            <SelectedPixel
+              setSelectedColor={setSelectedColor}
+              pixel={selectedPixel}
+            />
           </ModalBody>
         </ModalContent>
       </Modal>
