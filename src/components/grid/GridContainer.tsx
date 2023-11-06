@@ -11,7 +11,7 @@ import { useContract, useContractEvents, useSigner } from "@thirdweb-dev/react"
 import { ethers } from "ethers"
 import { useRouter } from "next/router"
 import { useEffect, useRef, useState } from "react"
-import { useLocalStorage } from "react-use"
+import { useInterval, useLocalStorage } from "react-use"
 import { ReactZoomPanPinchRef } from "react-zoom-pan-pinch"
 import { DPlaceGrid__factory } from "types"
 import { useGetPixels } from "../../utils/Subgraph"
@@ -34,6 +34,7 @@ export default function GridContainer() {
   const [selectedPixel, setSelectedPixel] = useState<Pixel>()
   const [panningDisabled, setPanningDisabled] = useState(false)
   const [showColorPicker, setShowColorPicker] = useState(false)
+  const [shouldUpdate, setShouldUpdate] = useState(false)
   const [cachedGridUrl, setCachedGridUrl] = useState("")
   const [hideStencil, setHideStencil] = useState(false)
   const [storagePixels, saveStoragePixels] = useLocalStorage("pixels", [])
@@ -77,6 +78,10 @@ export default function GridContainer() {
     onClose: onStencilClose,
   } = useDisclosure()
 
+  useInterval(() => {
+    setShouldUpdate(true)
+  }, 1000000)
+
   useEffect(() => {
     const handler = async () => {
       try {
@@ -107,13 +112,6 @@ export default function GridContainer() {
       setStencilCanvas(stencilCanvasRef.current.getContext("2d"))
     }
   }, [drawingCanvasRef, updateCanvasRef, stencilCanvasRef])
-
-  // open drawers on desktop load
-  useEffect(() => {
-    if (!isMobile) {
-      // onPixelMenuOpen()
-    }
-  }, [isMobile])
 
   useEffect(() => {
     if (signer && signer.provider) {
@@ -158,25 +156,25 @@ export default function GridContainer() {
     var gridImage = new Image()
     gridImage.src = cachedGridUrl
     gridImage.onload = async () => {
-      if (updateCanvas) {
-        if (storagePixels.length > 0) {
-          centerCanvasOnPixel(storagePixels[0], 4)
-          setTool("paint")
-        } else if (!currentStencil) {
-          centerCanvasOnPixel({ x: 500, y: 500 }, 1)
-        }
-        updateCanvas.imageSmoothingEnabled = false
-        updateCanvas.drawImage(gridImage, 0, 0, gridSize, gridSize)
-        // Catch up grid from subgraph
-        let timestamp = getTimestampFromUrl(cachedGridUrl)
-        let pixels = await getPixels(timestamp)
-        setNewPixels(pixels)
-        for (let i = 0; i < pixels.length; i++) {
-          setTimeout(() => addNewPixel(pixels[i]), 1)
-        }
+      if (storagePixels.length > 0) {
+        centerCanvasOnPixel(storagePixels[0], 4)
+        setTool("paint")
+      } else if (!currentStencil) {
+        centerCanvasOnPixel({ x: 500, y: 500 }, 1)
       }
+      updateCanvas.imageSmoothingEnabled = false
+      updateCanvas.drawImage(gridImage, 0, 0, gridSize, gridSize)
+      await updateCanvasFromSubgraph()
     }
   }, [cachedGridUrl, updateCanvas])
+
+  useEffect(() => {
+    let handler = async () => {
+      await updateCanvasFromSubgraph()
+      setShouldUpdate(false)
+    }
+    if (shouldUpdate) handler()
+  }, [shouldUpdate])
 
   // draw pixels from chain events
   useEffect(() => {
@@ -191,6 +189,18 @@ export default function GridContainer() {
       }
     }
   }, [chainEventPixels])
+
+  let updateCanvasFromSubgraph = async () => {
+    if (updateCanvas) {
+      // Catch up grid from subgraph
+      let timestamp = getTimestampFromUrl(cachedGridUrl)
+      let pixels = await getPixels(timestamp)
+      setNewPixels(pixels)
+      for (let i = 0; i < pixels.length; i++) {
+        setTimeout(() => addNewPixel(pixels[i]), 1)
+      }
+    }
+  }
 
   // manual pixel addition from catchup functions
   function addNewPixel(pixel: Pixel) {

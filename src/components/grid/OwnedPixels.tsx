@@ -48,7 +48,7 @@ export default function OwnedPixels({
         pt="1.5em"
         mt="-.5em"
         minH="105px"
-        w="25em"
+        maxW="31em"
       >
         {loading && <Spinner />}
         {ownedPixels.length === 0 && (

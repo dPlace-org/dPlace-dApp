@@ -145,8 +145,8 @@ export default function GridControls({
       }
       await getPrice(xs, ys)
     }
-    handler()
-  }, [updatedPixels])
+    if (contract) handler()
+  }, [contract, updatedPixels])
 
   useEffect(() => {
     if (tool === "move") {
@@ -228,7 +228,6 @@ export default function GridControls({
               bgColor={tool === "remove" ? "#FF4500 !important" : ""}
               color={tool === "remove" ? "white" : ""}
               onClick={() => {
-                console.log(tool)
                 tool == "remove" ? setTool("paint") : setTool("remove")
                 setShowColorPicker(false)
               }}
@@ -295,232 +294,266 @@ export default function GridControls({
   )
 
   return (
-    <Stack
-      pos="absolute"
-      bottom={{ md: "3em", sm: "1em" }}
-      left="50%"
-      transform={
-        menu ? "translate(calc(-50% + 36px), 0%)" : "translate(-50%, 0%)"
-      }
-    >
-      {subcontrols}
-      <Stack
-        maxW="30em"
-        w="100%"
-        minH="10em"
-        borderRadius={"1em"}
-        borderStartRadius={menu ? "0" : "1em"}
-        backdropFilter="blur(6px)"
-        backgroundColor="#000000ad"
-        padding="1em"
-      >
-        <HStack spacing={"1em"}>
-          <Stack alignSelf={{ md: "center", sm: "flex-start" }}>
-            <Tooltip label="Move" placement="right">
-              <IconButton
-                _hover={{ backgroundColor: "" }}
-                aria-label="move"
-                icon={<Icon as={BsArrowsMove} />}
-                bgColor={menu === "move" ? "#FF4500" : ""}
-                color={menu === "move" ? "white" : ""}
-                onClick={() => {
-                  setTool("move")
-                  pickMenu("move")
-                  setShowColorPicker(false)
-                }}
-              />
-            </Tooltip>
-            <Tooltip label="Paint" placement="right">
-              <IconButton
-                _hover={{ backgroundColor: "" }}
-                aria-label="paint"
-                icon={<Icon as={LuPaintbrush2} />}
-                bgColor={menu === "paint" ? selectedColor : ""}
-                color={menu === "paint" ? getTextForColor(selectedColor) : ""}
-                onClick={() => {
-                  setTool("paint")
-                  pickMenu("paint")
-                  setShowColorPicker(false)
-                }}
-              />
-            </Tooltip>
-            <Tooltip label="Stencils" placement="right">
-              <IconButton
-                _hover={{ backgroundColor: "" }}
-                aria-label="stencils"
-                icon={<Icon as={BiImage} />}
-                bgColor={menu === "stencils" ? "#FF4500" : ""}
-                color={menu === "stencils" ? "white" : ""}
-                onClick={() => {
-                  pickMenu("stencils")
-                  setShowColorPicker(false)
-                }}
-              />
-            </Tooltip>
-          </Stack>
-          <Stack
-            color="white"
-            spacing="1em"
-            ml="1em"
-            direction={{ md: "row", sm: "column" }}
+    <>
+      {hasStencil && (
+        <Stack position="absolute" left="14px" top="106px">
+          <Tooltip
+            label={!showingStencil ? "Show Stencil" : "Hide Stencil"}
+            placement="right"
           >
-            <Stack spacing={0} alignItems="center">
-              <Text
-                w="87px"
-                textAlign={"center"}
-                fontFamily={"minecraft"}
-                fontSize="5xl"
-              >
-                {updatedPixels.length}
-              </Text>
-              <Text mt="-24px" fontFamily={"minecraft"} fontSize="2xl">
-                Pixels
-              </Text>
-              <Tooltip
-                label="The more pixels you try to claim the higher the chance your transaction will fail."
-                placement="right"
-              >
-                <HStack mt="-8px" spacing="0">
-                  <Text
-                    fontFamily={"minecraft"}
-                    w="fit-content"
-                    color="#bdbdbd"
-                    mt="0"
-                    fontSize={"13px"}
-                  >
-                    <span style={{ fontWeight: "bold" }}>Max:</span> 200
-                  </Text>
-                  <Icon
-                    fontSize="xs"
-                    mt="-5px"
-                    as={FaQuestionCircle}
-                    color="#bdbdbd"
-                  />
-                </HStack>
-              </Tooltip>
-            </Stack>
-            {isMobile && (
-              <Divider
-                my="-12px"
-                borderColor="black"
-                opacity=".3"
-                borderWidth={"1px"}
-              />
-            )}
-            <Stack alignSelf={{ md: "flex-end", sm: "center" }}>
-              <Stack minH={{ md: "1.5em", sm: "5em" }}>
-                {priceLoading ? (
-                  <HStack>
-                    <span style={{ fontFamily: "minecraft" }}>Total:</span>
-                    <Spinner size="sm" />
-                  </HStack>
-                ) : (
-                  <Text my="-2px" fontSize={"1em"}>
-                    <span style={{ fontFamily: "minecraft" }}>Total:</span>
-                    <span style={{ fontWeight: "initial" }}> Ξ{price}</span>
-                    <span style={{ fontSize: "12px", color: "#bdbdbd" }}>
-                      {" "}
-                      (${usdPrice})
-                    </span>
-                  </Text>
-                )}
-              </Stack>
-              <Web3Button
-                contractAddress={gridAddress}
-                contractAbi={DPlaceGrid__factory.abi}
-                isDisabled={updatedPixels.length === 0}
-                style={{
-                  fontFamily: "minecraft",
-                  letterSpacing: "1px",
-                  fontSize: "18px",
-                  backgroundColor:
-                    updatedPixels.length > 0 || !signer ? "#FF4500" : "",
-                  color: updatedPixels.length > 0 || !signer ? "white" : "gray",
-                  minWidth: "10em",
-                }}
-                action={async (_contract) => {
-                  if (!priceBigNumber) return
-                  let colors = updatedPixels.map((pixel) =>
-                    ethers.utils.formatBytes32String(pixel.color),
-                  )
-                  try {
-                    setLoading(true)
-                    let grid = DPlaceGrid__factory.connect(gridAddress, signer)
-                    let newestPrice = await grid.calculatePixelsPrice(xs, ys)
-                    let gasPrice = await grid.estimateGas.claimPixels(
-                      xs,
-                      ys,
-                      colors,
-                      {
-                        value: newestPrice,
-                      },
-                    )
-                    await (
-                      await grid.claimPixels(xs, ys, colors, {
-                        value: newestPrice,
-                        gasPrice: gasPrice,
-                      })
-                    ).wait()
-                    track("pixels-claimed", {
-                      signer: await signer?.getAddress(),
-                      pixels: xs.length,
-                      cost: ethers.utils.formatEther(newestPrice),
-                    })
-                    setLoading(false)
-                  } catch (e: any) {
-                    console.log(e)
-                    setLoading(false)
-                    toast({
-                      title: `Transaction Error!`,
-                      description:
-                        "Something went wrong. make sure you have enough funds and try again!",
-                      status: "error",
-                      isClosable: true,
-                      position: "top-right",
-                      containerStyle: {
-                        marginTop: "120px",
-                      },
-                    })
-                    track("pixel-claim-error", {
-                      signer: await signer?.getAddress(),
-                      pixels: xs.length,
-                    })
-                    return
-                  }
-                  confirmClaimPixels()
-                }}
-              >
-                Claim Pixels
-              </Web3Button>
-            </Stack>
-          </Stack>
-        </HStack>
-      </Stack>
-      {showColorPicker && (
-        <Stack position="absolute" bottom="102%" left="-72px">
-          <HexColorPicker color={selectedColor} onChange={setSelectedColor} />
-          <HStack>
-            {isSupported && (
-              <IconButton
-                _hover={{ backgroundColor: "" }}
-                aria-label="color-picker"
-                icon={<Icon as={FaEyeDropper} />}
-                onClick={() => {
-                  pickColor()
-                }}
-              />
-            )}
-            <Editable value={selectedColor}>
-              <EditablePreview />
-              <EditableInput
-                onChange={(e) =>
-                  setSelectedColor(getColorOrDefault(e.target.value))
-                }
-              />
-            </Editable>
-          </HStack>
+            <IconButton
+              backgroundColor="#FF4500"
+              color="white"
+              aria-label="hide-stencil"
+              icon={<Icon as={showingStencil ? FaEyeSlash : FaEye} />}
+              onClick={() => {
+                toggleShowStencil()
+              }}
+            />
+          </Tooltip>
         </Stack>
       )}
-    </Stack>
+      <Stack
+        pos="absolute"
+        bottom={{ md: "3em", sm: "1em" }}
+        left="50%"
+        transform={
+          menu ? "translate(calc(-50% + 36px), 0%)" : "translate(-50%, 0%)"
+        }
+      >
+        {subcontrols}
+        <Stack
+          maxW="30em"
+          w="100%"
+          minH="10em"
+          borderRadius={"1em"}
+          borderStartRadius={menu ? "0" : "1em"}
+          backdropFilter="blur(6px)"
+          backgroundColor="#000000ad"
+          padding="1em"
+        >
+          <HStack spacing={"1em"}>
+            <Stack alignSelf={{ md: "center", sm: "flex-start" }}>
+              <Tooltip label="Move" placement="right">
+                <IconButton
+                  _hover={{ backgroundColor: "" }}
+                  aria-label="move"
+                  icon={<Icon as={BsArrowsMove} />}
+                  bgColor={menu === "move" ? "#FF4500" : ""}
+                  color={menu === "move" ? "white" : ""}
+                  onClick={() => {
+                    setTool("move")
+                    pickMenu("move")
+                    setShowColorPicker(false)
+                  }}
+                />
+              </Tooltip>
+              <Tooltip label="Paint" placement="right">
+                <IconButton
+                  _hover={{ backgroundColor: "" }}
+                  aria-label="paint"
+                  icon={<Icon as={LuPaintbrush2} />}
+                  bgColor={menu === "paint" ? selectedColor : ""}
+                  color={menu === "paint" ? getTextForColor(selectedColor) : ""}
+                  onClick={() => {
+                    setTool("paint")
+                    pickMenu("paint")
+                    setShowColorPicker(false)
+                  }}
+                />
+              </Tooltip>
+              <Tooltip label="Stencils" placement="right">
+                <IconButton
+                  _hover={{ backgroundColor: "" }}
+                  aria-label="stencils"
+                  icon={<Icon as={BiImage} />}
+                  bgColor={menu === "stencils" ? "#FF4500" : ""}
+                  color={menu === "stencils" ? "white" : ""}
+                  onClick={() => {
+                    pickMenu("stencils")
+                    setShowColorPicker(false)
+                  }}
+                />
+              </Tooltip>
+            </Stack>
+            <Stack
+              color="white"
+              spacing="1em"
+              ml="1em"
+              direction={{ md: "row", sm: "column" }}
+            >
+              <Stack spacing={0} alignItems="center">
+                <Text
+                  w="87px"
+                  textAlign={"center"}
+                  fontFamily={"minecraft"}
+                  fontSize="5xl"
+                >
+                  {updatedPixels.length}
+                </Text>
+                <Text mt="-24px" fontFamily={"minecraft"} fontSize="2xl">
+                  Pixels
+                </Text>
+                <Tooltip
+                  label="The more pixels you try to claim the higher the chance your transaction will fail."
+                  placement="right"
+                >
+                  <HStack mt="-8px" spacing="0">
+                    <Text
+                      fontFamily={"minecraft"}
+                      w="fit-content"
+                      color="#bdbdbd"
+                      mt="0"
+                      fontSize={"13px"}
+                    >
+                      <span style={{ fontWeight: "bold" }}>Max:</span> 200
+                    </Text>
+                    <Icon
+                      fontSize="xs"
+                      mt="-5px"
+                      as={FaQuestionCircle}
+                      color="#bdbdbd"
+                    />
+                  </HStack>
+                </Tooltip>
+              </Stack>
+              {isMobile && (
+                <Divider
+                  my="-12px"
+                  borderColor="black"
+                  opacity=".3"
+                  borderWidth={"1px"}
+                />
+              )}
+              <Stack alignSelf={{ md: "flex-end", sm: "center" }}>
+                <Stack style={{ flexWrap: "nowrap" }} maxW="12em">
+                  {priceLoading ? (
+                    <HStack>
+                      <span style={{ fontFamily: "minecraft" }}>Total:</span>
+                      <Spinner size="sm" />
+                    </HStack>
+                  ) : (
+                    <Text w="180px" my="-2px" fontSize={"1em"}>
+                      <span style={{ fontFamily: "minecraft" }}>Total:</span>
+                      <span
+                        style={{
+                          fontWeight: "initial",
+                          display: "inline-flex",
+                          maxWidth: "75px",
+                          overflow: "hidden",
+                        }}
+                      >
+                        {" "}
+                        Ξ{price}
+                      </span>
+                      <span style={{ fontSize: "12px", color: "#bdbdbd" }}>
+                        {" "}
+                        (${usdPrice})
+                      </span>
+                    </Text>
+                  )}
+                </Stack>
+                <Web3Button
+                  contractAddress={gridAddress}
+                  contractAbi={DPlaceGrid__factory.abi}
+                  isDisabled={updatedPixels.length === 0}
+                  style={{
+                    fontFamily: "minecraft",
+                    letterSpacing: "1px",
+                    fontSize: "18px",
+                    backgroundColor:
+                      updatedPixels.length > 0 || !signer ? "#FF4500" : "",
+                    color:
+                      updatedPixels.length > 0 || !signer ? "white" : "gray",
+                    minWidth: "10em",
+                  }}
+                  action={async (_contract) => {
+                    if (!priceBigNumber) return
+                    let colors = updatedPixels.map((pixel) =>
+                      ethers.utils.formatBytes32String(pixel.color),
+                    )
+                    try {
+                      setLoading(true)
+                      let grid = DPlaceGrid__factory.connect(
+                        gridAddress,
+                        signer,
+                      )
+                      let newestPrice = await grid.calculatePixelsPrice(xs, ys)
+                      let gasPrice = await grid.estimateGas.claimPixels(
+                        xs,
+                        ys,
+                        colors,
+                        {
+                          value: newestPrice,
+                        },
+                      )
+                      await (
+                        await grid.claimPixels(xs, ys, colors, {
+                          value: newestPrice,
+                          gasPrice: gasPrice,
+                        })
+                      ).wait()
+                      track("pixels-claimed", {
+                        signer: await signer?.getAddress(),
+                        pixels: xs.length,
+                        cost: ethers.utils.formatEther(newestPrice),
+                      })
+                      setLoading(false)
+                    } catch (e: any) {
+                      console.log(e)
+                      setLoading(false)
+                      toast({
+                        title: `Transaction Error!`,
+                        description:
+                          "Something went wrong. make sure you have enough funds and try again!",
+                        status: "error",
+                        isClosable: true,
+                        position: "top-right",
+                        containerStyle: {
+                          marginTop: "120px",
+                        },
+                      })
+                      track("pixel-claim-error", {
+                        signer: await signer?.getAddress(),
+                        pixels: xs.length,
+                      })
+                      return
+                    }
+                    confirmClaimPixels()
+                  }}
+                >
+                  Claim Pixels
+                </Web3Button>
+              </Stack>
+            </Stack>
+          </HStack>
+        </Stack>
+        {showColorPicker && (
+          <Stack position="absolute" bottom="102%" left="-72px">
+            <HexColorPicker color={selectedColor} onChange={setSelectedColor} />
+            <HStack>
+              {isSupported && (
+                <IconButton
+                  _hover={{ backgroundColor: "" }}
+                  aria-label="color-picker"
+                  icon={<Icon as={FaEyeDropper} />}
+                  onClick={() => {
+                    pickColor()
+                  }}
+                />
+              )}
+              <Editable value={selectedColor}>
+                <EditablePreview />
+                <EditableInput
+                  onChange={(e) =>
+                    setSelectedColor(getColorOrDefault(e.target.value))
+                  }
+                />
+              </Editable>
+            </HStack>
+          </Stack>
+        )}
+      </Stack>
+    </>
   )
 }
