@@ -36,7 +36,7 @@ const Header = () => {
             height: 150,
           },
           title: "Login to dPlace",
-          subtitle: "Choose a login method to get started",
+          subtitle: "Choose a login method to  get started",
         }}
       />
     </HStack>
