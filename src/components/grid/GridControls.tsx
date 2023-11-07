@@ -303,6 +303,7 @@ export default function GridControls({
           >
             <IconButton
               backgroundColor="#FF4500"
+              _selected={{ backgroundColor: "#FF4500" }}
               color="white"
               aria-label="hide-stencil"
               icon={<Icon as={showingStencil ? FaEyeSlash : FaEye} />}

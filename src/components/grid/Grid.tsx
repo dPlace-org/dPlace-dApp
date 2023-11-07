@@ -285,7 +285,7 @@ export default function Grid({
                 cursor: tool === "move" ? "pointer" : "crosshair",
                 position: "absolute",
                 display: hideStencil ? "none" : "",
-                opacity: 0.7,
+                filter: "drop-shadow(black 1px 0px 2px)",
               }}
             />
             <canvas
