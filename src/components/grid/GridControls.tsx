@@ -300,6 +300,7 @@ export default function GridControls({
           <Tooltip
             label={!showingStencil ? "Show Stencil" : "Hide Stencil"}
             placement="right"
+            defaultIsOpen={true}
           >
             <IconButton
               backgroundColor="#FF4500"
