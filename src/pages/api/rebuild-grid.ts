@@ -3,6 +3,7 @@ import { del, list, put } from "@vercel/blob"
 import Color from "color"
 import { createReadStream, createWriteStream, unlink } from "fs"
 import type { NextApiRequest, NextApiResponse } from "next"
+import { NextResponse } from "next/server"
 import { PNG } from "pngjs"
 import { cacheExchange, createClient, fetchExchange } from "urql"
 
@@ -15,6 +16,14 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<ResponseData>,
 ) {
+  if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json(
+      { success: false },
+      {
+        status: 401,
+      },
+    )
+  }
   // Retrieves all pixels from subgraph and save an entirely knew PNG
   const client = createClient({
     url: process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT,
