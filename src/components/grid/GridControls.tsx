@@ -95,6 +95,7 @@ export default function GridControls({
     ethers.BigNumber.from(0),
   )
   const [price, setPrice] = useState("0.0")
+  const [hasSufficientBalance, setHasSufficientBalance] = useState(false)
   const [priceLoading, setPriceLoading] = useState(false)
   const { contract } = useContract(gridAddress, DPlaceGrid__factory.abi)
   const signer = useSigner()
@@ -129,6 +130,8 @@ export default function GridControls({
     setPriceLoading(true)
     try {
       let _price = await contract.call("calculatePixelsPrice", [xs, ys])
+      let balance = await signer?.getBalance()
+      setHasSufficientBalance(balance?.gte(_price) ?? false)
       setPrice(ethers.utils.formatEther(_price))
       setPriceBigNumber(_price)
     } catch (e) {
@@ -146,7 +149,7 @@ export default function GridControls({
       await getPrice(xs, ys)
     }
     if (contract) handler()
-  }, [contract, updatedPixels])
+  }, [contract, updatedPixels, signer])
 
   useEffect(() => {
     if (tool === "move") {
@@ -458,13 +461,19 @@ export default function GridControls({
                 <Web3Button
                   contractAddress={gridAddress}
                   contractAbi={DPlaceGrid__factory.abi}
-                  isDisabled={updatedPixels.length === 0}
+                  isDisabled={
+                    updatedPixels.length === 0 || !hasSufficientBalance
+                  }
                   style={{
                     fontFamily: "minecraft",
                     letterSpacing: "1px",
                     fontSize: "18px",
                     backgroundColor:
-                      updatedPixels.length > 0 || !signer ? "#FF4500" : "",
+                      updatedPixels.length == 0 ||
+                      !signer ||
+                      !hasSufficientBalance
+                        ? "#a52c00"
+                        : "#FF4500",
                     color:
                       updatedPixels.length > 0 || !signer ? "white" : "gray",
                     minWidth: "10em",
@@ -518,6 +527,7 @@ export default function GridControls({
                       track("pixel-claim-error", {
                         signer: await signer?.getAddress(),
                         pixels: xs.length,
+                        error: e,
                       })
                       return
                     }

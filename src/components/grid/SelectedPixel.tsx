@@ -1,6 +1,7 @@
 import { useGetPixel } from "@/utils/Subgraph"
 import { trimAddress } from "@/utils/utils"
 import {
+  Button,
   Center,
   Heading,
   HStack,
@@ -109,6 +110,14 @@ export default function SelectedPixel({
                 {pixel?.y || "--"}
               </Text>
             </Stack>
+            <Button
+              onClick={() => setSelectedColor(color)}
+              w="max-content"
+              alignSelf={"center"}
+              variant="ghost"
+            >
+              Use Color
+            </Button>
           </Stack>
 
           <Stack m="1em">

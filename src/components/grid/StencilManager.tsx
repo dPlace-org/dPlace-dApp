@@ -84,6 +84,7 @@ export default function StencilManager({
       )
       saveStorageStencils([...storageStencils, ipfsUpload])
       setCallerStencils([...storageStencils, ipfsUpload])
+      selectStencil(ipfsUpload)
     } catch (e) {
       console.log(e)
     }
