@@ -1,10 +1,48 @@
-import { HStack, Image } from "@chakra-ui/react"
-import { ConnectWallet, lightTheme } from "@thirdweb-dev/react"
+import { Button, HStack, Image } from "@chakra-ui/react"
+import {
+  ConnectWallet,
+  lightTheme,
+  useContract,
+  useSigner,
+} from "@thirdweb-dev/react"
+import { ethers } from "ethers"
+import { useEffect, useState } from "react"
+import { DPlaceGrid__factory } from "types"
 
 const Header = () => {
+  let gridAddress = process.env.NEXT_PUBLIC_GRID_ADDRESS
+
+  const { contract } = useContract(gridAddress, DPlaceGrid__factory.abi)
+  const signer = useSigner()
+
+  let withdraw = async () => {
+    setLoading(true)
+    try {
+      await contract.call("withdraw")
+      setLoading(false)
+    } catch (e) {
+      setLoading(false)
+    }
+  }
+
+  let [withdrawAmount, setWithdrawAmount] = useState("")
+  let [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    let handler = async () => {
+      let address = await signer.getAddress()
+      setWithdrawAmount(
+        ethers.utils
+          .formatEther(await contract.call("deposits", [address]))
+          .slice(0, 8),
+      )
+    }
+    if (signer && contract) handler()
+  }, [signer, contract])
+
   return (
     <HStack
-      bgColor="#FF4500"
+      bgColor="#FF4500 !important"
       as="header"
       position="fixed"
       top="0"
@@ -36,9 +74,24 @@ const Header = () => {
             height: 150,
           },
           title: "Login to dPlace",
-          subtitle: "Choose a login method to  get started",
+          subtitle: "Choose a login method to get started",
         }}
       />
+      {withdrawAmount && withdrawAmount !== "0.0" && (
+        <Button
+          isLoading={loading}
+          bgColor={"#FF4500"}
+          color={"white"}
+          pos={"absolute"}
+          right="1em"
+          top="98px"
+          fontFamily={"minecraft"}
+          onClick={withdraw}
+          minW="11em"
+        >
+          Withdraw Ξ{withdrawAmount}
+        </Button>
+      )}
     </HStack>
   )
 }
