@@ -20,6 +20,7 @@ const Header = () => {
     try {
       await contract.call("withdraw")
       setLoading(false)
+      setWithdrawAmount("0.0")
     } catch (e) {
       setLoading(false)
     }
