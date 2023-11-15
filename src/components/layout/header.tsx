@@ -1,4 +1,11 @@
-import { Button, HStack, Image } from "@chakra-ui/react"
+import {
+  Button,
+  HStack,
+  Icon,
+  IconButton,
+  Image,
+  useDisclosure,
+} from "@chakra-ui/react"
 import {
   ConnectWallet,
   lightTheme,
@@ -7,7 +14,9 @@ import {
 } from "@thirdweb-dev/react"
 import { ethers } from "ethers"
 import { useEffect, useState } from "react"
+import { FaQuestion } from "react-icons/fa"
 import { DPlaceGrid__factory } from "types"
+import { FAQ } from "./FAQ"
 
 const Header = () => {
   let gridAddress = process.env.NEXT_PUBLIC_GRID_ADDRESS
@@ -25,6 +34,12 @@ const Header = () => {
       setLoading(false)
     }
   }
+
+  const {
+    isOpen: isFaqOpen,
+    onOpen: onFaqOpen,
+    onClose: onFaqClose,
+  } = useDisclosure()
 
   let [withdrawAmount, setWithdrawAmount] = useState("")
   let [loading, setLoading] = useState(false)
@@ -93,6 +108,18 @@ const Header = () => {
           Withdraw Ξ{withdrawAmount}
         </Button>
       )}
+      <IconButton
+        aria-label="FAQ"
+        bgColor={"#FF4500"}
+        color={"white"}
+        pos={"absolute"}
+        left="1em"
+        top="98px"
+        onClick={() => (isFaqOpen ? onFaqClose() : onFaqOpen())}
+        borderRadius="4em"
+        icon={<Icon as={FaQuestion} />}
+      />
+      <FAQ isOpen={isFaqOpen} onClose={onFaqClose} />
     </HStack>
   )
 }

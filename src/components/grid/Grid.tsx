@@ -33,6 +33,7 @@ interface GridProps {
   hideStencil: boolean
   selectedColor: string
   selectedPixel: Pixel
+  loading: boolean
   setSelectedColor: (val: string) => void
   saveUpdatePixels: (pixels: Pixel[]) => void
   setSelectedPixel: (pixel: Pixel) => void
@@ -56,6 +57,7 @@ export default function Grid({
   hideStencil,
   selectedColor,
   selectedPixel,
+  loading,
   setSelectedColor,
   centerCanvasOnPixel,
   saveUpdatePixels,
@@ -123,9 +125,7 @@ export default function Grid({
 
   // user called to draw pixels
   function drawPixel(x, y, color) {
-    if (!signer) {
-      // open modal
-    }
+    if (loading) return
     let index = updatedPixels.findIndex(
       (pixel) => pixel.x === x && pixel.y === y,
     )
@@ -185,7 +185,7 @@ export default function Grid({
   }
 
   function drawPixels(event) {
-    if (!drawingCanvas) return
+    if (!drawingCanvas || loading) return
     let { x, y } = event.touches
       ? getPixelFromCoordinates(
           event.touches[0].clientX,

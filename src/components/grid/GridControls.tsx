@@ -1,4 +1,4 @@
-import { getTextForColor } from "@/utils/utils"
+import { getColorOrDefault, getTextForColor } from "@/utils/utils"
 import {
   Divider,
   Editable,
@@ -41,7 +41,6 @@ import { DPlaceGrid__factory } from "types"
 import { useDebouncedCallback } from "use-debounce"
 import useEyeDropper from "use-eye-dropper"
 import { useCalculatePriceUSD } from "../../utils/Price"
-import { getColorOrDefault } from "../../utils/utils"
 import { Pixel } from "./Grid"
 import OwnedPixels from "./OwnedPixels"
 
@@ -52,6 +51,7 @@ interface Props {
   hasStencil: boolean
   showingStencil: boolean
   showColorPicker: boolean
+  loading: boolean
   selectedColor: string
   centerCanvasOnPixel: (pixel: Pixel, scale: number) => void
   setSelectedColor: (color: string) => void
@@ -70,6 +70,7 @@ export default function GridControls({
   showingStencil,
   showColorPicker,
   updatedPixels,
+  loading,
   setTool,
   setSelectedColor,
   centerCanvasOnPixel,
@@ -95,6 +96,7 @@ export default function GridControls({
     ethers.BigNumber.from(0),
   )
   const [price, setPrice] = useState("0.0")
+  const [inputColor, setInputColor] = useState(selectedColor)
   const [hasSufficientBalance, setHasSufficientBalance] = useState(false)
   const [priceLoading, setPriceLoading] = useState(false)
   const { contract } = useContract(gridAddress, DPlaceGrid__factory.abi)
@@ -159,6 +161,10 @@ export default function GridControls({
       setMenu("paint")
     }
   }, [tool])
+
+  useEffect(() => {
+    setSelectedColor(getColorOrDefault(inputColor))
+  }, [inputColor])
 
   let subcontrols = menu && (
     <Stack
@@ -225,6 +231,7 @@ export default function GridControls({
           </Tooltip>
           <Tooltip label="Eraser" placement="right">
             <IconButton
+              isDisabled={loading}
               _hover={{ backgroundColor: "" }}
               aria-label="remove"
               icon={<Icon as={PiEraserBold} />}
@@ -236,16 +243,19 @@ export default function GridControls({
               }}
             />
           </Tooltip>
-          <Tooltip label="Clear Updates" placement="right">
-            <IconButton
-              _hover={{ backgroundColor: "" }}
-              aria-label="clear"
-              icon={<Icon as={ImBin} />}
-              onClick={() => {
-                clearDrawnPixels()
-              }}
-            />
-          </Tooltip>
+          {updatedPixels.length > 0 && (
+            <Tooltip label="Clear Updates" placement="right">
+              <IconButton
+                isDisabled={loading}
+                _hover={{ backgroundColor: "" }}
+                aria-label="clear"
+                icon={<Icon as={ImBin} />}
+                onClick={() => {
+                  clearDrawnPixels()
+                }}
+              />
+            </Tooltip>
+          )}
         </>
       ) : (
         menu === "stencils" && (
@@ -355,6 +365,7 @@ export default function GridControls({
               </Tooltip>
               <Tooltip label="Paint" placement="right">
                 <IconButton
+                  isDisabled={loading}
                   _hover={{ backgroundColor: "" }}
                   aria-label="paint"
                   icon={<Icon as={LuPaintbrush2} />}
@@ -400,7 +411,7 @@ export default function GridControls({
                   Pixels
                 </Text>
                 <Tooltip
-                  label="The more pixels you try to claim the higher the chance your transaction will fail."
+                  label="Claiming more pixels at once increases the chance your transaction will fail."
                   placement="right"
                 >
                   <HStack mt="-8px" spacing="0">
@@ -554,11 +565,12 @@ export default function GridControls({
                   }}
                 />
               )}
-              <Editable value={selectedColor}>
+              <Editable value={inputColor}>
                 <EditablePreview />
                 <EditableInput
-                  onChange={(e) =>
-                    setSelectedColor(getColorOrDefault(e.target.value))
+                  onChange={
+                    (e) => setInputColor(e.target.value)
+                    // setInputcolor(getColorOrDefault(e.target.value))
                   }
                 />
               </Editable>

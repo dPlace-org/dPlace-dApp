@@ -1,6 +1,4 @@
 import {
-  Center,
-  Spinner,
   Stack,
   useBreakpointValue,
   useDisclosure,
@@ -317,6 +315,7 @@ export default function GridContainer() {
         updatedPixels={updatedPixels}
         maxPixels={maxPixels}
         gridSize={gridSize}
+        loading={loading}
         setTool={setTool}
         hideStencil={hideStencil}
         selectedColor={selectedColor}
@@ -328,16 +327,6 @@ export default function GridContainer() {
         removeUpdatedPixel={removeUpdatedPixel}
         setShowColorPicker={setShowColorPicker}
       />
-      {loading && (
-        <Center
-          backgroundColor="#00000012"
-          pos="absolute"
-          w={"100vw"}
-          h={"100vh"}
-        >
-          <Spinner />
-        </Center>
-      )}
       <GridControls
         tool={tool}
         setTool={setTool}
@@ -346,6 +335,7 @@ export default function GridContainer() {
         showingStencil={!hideStencil}
         showColorPicker={showColorPicker}
         selectedColor={selectedColor}
+        loading={loading}
         centerCanvasOnPixel={centerCanvasOnPixel}
         setSelectedColor={setSelectedColor}
         clearDrawnPixels={clearDrawnPixels}
