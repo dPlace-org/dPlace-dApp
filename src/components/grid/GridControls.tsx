@@ -1,5 +1,6 @@
 import { getColorOrDefault, getTextForColor } from "@/utils/utils"
 import {
+  Button,
   Divider,
   Editable,
   EditableInput,
@@ -15,9 +16,17 @@ import {
   useDisclosure,
   useToast,
 } from "@chakra-ui/react"
-import { useContract, useSigner, Web3Button } from "@thirdweb-dev/react"
+
+import { calculatePixelsCost } from "@/utils/Canvas"
+import {
+  useCurrentAccount,
+  useSignAndExecuteTransaction,
+  useSuiClient,
+} from "@mysten/dapp-kit"
+
+import { coinWithBalance, Transaction } from "@mysten/sui/transactions"
+
 import { track } from "@vercel/analytics"
-import { ethers } from "ethers"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { HexColorPicker } from "react-colorful"
 import { BiImage, BiSolidGridAlt } from "react-icons/bi"
@@ -37,7 +46,6 @@ import {
   PiEraserBold,
   PiMagnifyingGlassBold,
 } from "react-icons/pi"
-import { DPlaceGrid__factory } from "types"
 import { useDebouncedCallback } from "use-debounce"
 import useEyeDropper from "use-eye-dropper"
 import { useCalculatePriceUSD } from "../../utils/Price"
@@ -84,6 +92,7 @@ export default function GridControls({
   let gridAddress = process.env.NEXT_PUBLIC_GRID_ADDRESS
   const { open, isSupported } = useEyeDropper()
   const [menu, setMenu] = useState("move")
+  const account = useCurrentAccount()
 
   const pickMenu = (option: string) => {
     if (menu == option) return
@@ -92,16 +101,15 @@ export default function GridControls({
 
   const isMobile = useBreakpointValue({ base: true, md: false })
   const toast = useToast()
-  const [priceBigNumber, setPriceBigNumber] = useState<ethers.BigNumber>(
-    ethers.BigNumber.from(0),
-  )
-  const [price, setPrice] = useState("0.0")
+  const [price, setPrice] = useState(0)
   const [inputColor, setInputColor] = useState(selectedColor)
   const [hasSufficientBalance, setHasSufficientBalance] = useState(false)
   const [priceLoading, setPriceLoading] = useState(false)
-  const { contract } = useContract(gridAddress, DPlaceGrid__factory.abi)
-  const signer = useSigner()
-  const { usdPrice } = useCalculatePriceUSD({ ethAmount: price })
+  const client = useSuiClient()
+  const { usdPrice } = useCalculatePriceUSD({
+    suiAmount: (price / 10 ** 9).toString(),
+  })
+  const { mutate } = useSignAndExecuteTransaction()
 
   const {
     isOpen: isOwnedOpen,
@@ -131,11 +139,11 @@ export default function GridControls({
   let getPrice = useDebouncedCallback(async (xs: number[], ys: number[]) => {
     setPriceLoading(true)
     try {
-      let _price = await contract.call("calculatePixelsPrice", [xs, ys])
-      let balance = await signer?.getBalance()
-      setHasSufficientBalance(balance?.gte(_price) ?? false)
-      setPrice(ethers.utils.formatEther(_price))
-      setPriceBigNumber(_price)
+      let cost = await calculatePixelsCost(client, account.address, xs, ys)
+      let balance = await client.getBalance({ owner: account.address })
+
+      setHasSufficientBalance(Number(balance?.totalBalance) > cost)
+      setPrice(cost)
     } catch (e) {
       console.log(e)
     }
@@ -145,13 +153,13 @@ export default function GridControls({
   useMemo(() => {
     let handler = async () => {
       if (xs.length === 0 && ys.length === 0) {
-        setPrice("0.0")
+        setPrice(0)
         return
       }
       await getPrice(xs, ys)
     }
-    if (contract) handler()
-  }, [contract, updatedPixels, signer])
+    handler()
+  }, [updatedPixels, account])
 
   useEffect(() => {
     if (tool === "move") {
@@ -165,6 +173,79 @@ export default function GridControls({
   useEffect(() => {
     setSelectedColor(getColorOrDefault(inputColor))
   }, [inputColor])
+
+  const handle_paint_pixels = async () => {
+    if (!price) return
+    try {
+      setLoading(true)
+      let newestPrice = await calculatePixelsCost(
+        client,
+        account.address,
+        xs,
+        ys,
+      )
+
+      let colors = updatedPixels.map((pixel) => pixel.color)
+
+      // Create and execute transaction
+      const tx = new Transaction()
+      tx.setSender(account?.address)
+
+      tx.moveCall({
+        target: `${process.env.NEXT_PUBLIC_PACKAGE_ID}::meta_canvas::paint_pixels`,
+        arguments: [
+          tx.object(process.env.NEXT_PUBLIC_META_CANVAS_ID),
+          tx.pure.vector("u64", xs),
+          tx.pure.vector("u64", ys),
+          tx.pure.vector("string", colors),
+          tx.object("0x6"),
+          coinWithBalance({ balance: newestPrice, useGasCoin: true }),
+        ],
+      })
+
+      // Execute transaction
+      await mutate(
+        {
+          transaction: tx,
+          chain: "sui:testnet",
+        },
+        {
+          onError: (error) => {
+            console.log(error)
+            setLoading(false)
+            toast({
+              title: `Transaction Error!`,
+              description:
+                "Something went wrong. make sure you have enough funds and try again!",
+              status: "error",
+              isClosable: true,
+              position: "top-right",
+              containerStyle: {
+                marginTop: "120px",
+              },
+            })
+            track("pixel-claim-error", {
+              signer: account.address,
+              pixels: xs.length,
+              error: error as any,
+            })
+          },
+          onSuccess: () => {
+            // vercel analytics
+            track("pixels-claimed", {
+              signer: account.address,
+              pixels: xs.length,
+              cost: newestPrice,
+            })
+            setLoading(false)
+            confirmClaimPixels()
+          },
+        },
+      )
+    } catch (e: any) {
+      return
+    }
+  }
 
   let subcontrols = menu && (
     <Stack
@@ -185,7 +266,7 @@ export default function GridControls({
               aria-label="center"
               icon={<Icon as={PiCrosshairBold} />}
               onClick={() => {
-                centerCanvasOnPixel({ x: 500, y: 500 }, 5)
+                centerCanvasOnPixel({ x: 90, y: 90 }, 5)
               }}
             />
           </Tooltip>
@@ -194,7 +275,7 @@ export default function GridControls({
               _hover={{ backgroundColor: "" }}
               aria-label="select"
               icon={<Icon as={PiMagnifyingGlassBold} />}
-              bgColor={tool === "select" ? "#FF4500" : ""}
+              bgColor={tool === "select" ? "#4ca3ff" : ""}
               color={tool === "select" ? "white" : ""}
               onClick={() => {
                 setTool("select")
@@ -225,7 +306,7 @@ export default function GridControls({
                 if (!showColorPicker) setTool("paint")
                 setShowColorPicker(!showColorPicker)
               }}
-              bgColor={showColorPicker ? "#FF4500 !important" : ""}
+              bgColor={showColorPicker ? "#4ca3ff !important" : ""}
               color={showColorPicker ? "white" : ""}
             />
           </Tooltip>
@@ -235,7 +316,7 @@ export default function GridControls({
               _hover={{ backgroundColor: "" }}
               aria-label="remove"
               icon={<Icon as={PiEraserBold} />}
-              bgColor={tool === "remove" ? "#FF4500 !important" : ""}
+              bgColor={tool === "remove" ? "#4ca3ff !important" : ""}
               color={tool === "remove" ? "white" : ""}
               onClick={() => {
                 tool == "remove" ? setTool("paint") : setTool("remove")
@@ -270,16 +351,6 @@ export default function GridControls({
                 }}
               />
             </Tooltip>
-            {/* <Tooltip label="Add Stencils" placement="right">
-              <IconButton
-                _hover={{ backgroundColor: "" }}
-                aria-label="Add Stencils"
-                icon={<Icon as={LuImagePlus} />}
-                onClick={() => {
-                  // TODO: open add stencil modal
-                }}
-              />
-            </Tooltip> */}
             {hasStencil && (
               <Tooltip
                 label={!showingStencil ? "Show Stencil" : "Hide Stencil"}
@@ -316,8 +387,8 @@ export default function GridControls({
             defaultIsOpen={true}
           >
             <IconButton
-              backgroundColor="#FF4500"
-              _selected={{ backgroundColor: "#FF4500" }}
+              backgroundColor="#4ca3ff"
+              _selected={{ backgroundColor: "#4ca3ff" }}
               color="white"
               aria-label="hide-stencil"
               icon={<Icon as={showingStencil ? FaEyeSlash : FaEye} />}
@@ -354,7 +425,7 @@ export default function GridControls({
                   _hover={{ backgroundColor: "" }}
                   aria-label="move"
                   icon={<Icon as={BsArrowsMove} />}
-                  bgColor={menu === "move" ? "#FF4500" : ""}
+                  bgColor={menu === "move" ? "#4ca3ff" : ""}
                   color={menu === "move" ? "white" : ""}
                   onClick={() => {
                     setTool("move")
@@ -383,7 +454,7 @@ export default function GridControls({
                   _hover={{ backgroundColor: "" }}
                   aria-label="stencils"
                   icon={<Icon as={BiImage} />}
-                  bgColor={menu === "stencils" ? "#FF4500" : ""}
+                  bgColor={menu === "stencils" ? "#4ca3ff" : ""}
                   color={menu === "stencils" ? "white" : ""}
                   onClick={() => {
                     pickMenu("stencils")
@@ -460,7 +531,7 @@ export default function GridControls({
                         }}
                       >
                         {" "}
-                        Ξ{price}
+                        💧{price / 10 ** 9}
                       </span>
                       <span style={{ fontSize: "12px", color: "#bdbdbd" }}>
                         {" "}
@@ -469,9 +540,8 @@ export default function GridControls({
                     </Text>
                   )}
                 </Stack>
-                <Web3Button
-                  contractAddress={gridAddress}
-                  contractAbi={DPlaceGrid__factory.abi}
+
+                <Button
                   isDisabled={
                     updatedPixels.length === 0 || !hasSufficientBalance
                   }
@@ -481,72 +551,18 @@ export default function GridControls({
                     fontSize: "18px",
                     backgroundColor:
                       updatedPixels.length == 0 ||
-                      !signer ||
+                      !account ||
                       !hasSufficientBalance
-                        ? "#a52c00"
-                        : "#FF4500",
+                        ? "#004690"
+                        : "#0d65c2",
                     color:
-                      updatedPixels.length > 0 || !signer ? "white" : "gray",
+                      updatedPixels.length > 0 || !account ? "white" : "gray",
                     minWidth: "10em",
                   }}
-                  action={async (_contract) => {
-                    if (!priceBigNumber) return
-                    let colors = updatedPixels.map((pixel) =>
-                      ethers.utils.formatBytes32String(pixel.color),
-                    )
-                    try {
-                      setLoading(true)
-                      let grid = DPlaceGrid__factory.connect(
-                        gridAddress,
-                        signer,
-                      )
-                      let newestPrice = await grid.calculatePixelsPrice(xs, ys)
-                      let gasPrice = await grid.estimateGas.claimPixels(
-                        xs,
-                        ys,
-                        colors,
-                        {
-                          value: newestPrice,
-                        },
-                      )
-                      await (
-                        await grid.claimPixels(xs, ys, colors, {
-                          value: newestPrice,
-                          gasPrice: gasPrice,
-                        })
-                      ).wait()
-                      track("pixels-claimed", {
-                        signer: await signer?.getAddress(),
-                        pixels: xs.length,
-                        cost: ethers.utils.formatEther(newestPrice),
-                      })
-                      setLoading(false)
-                    } catch (e: any) {
-                      console.log(e)
-                      setLoading(false)
-                      toast({
-                        title: `Transaction Error!`,
-                        description:
-                          "Something went wrong. make sure you have enough funds and try again!",
-                        status: "error",
-                        isClosable: true,
-                        position: "top-right",
-                        containerStyle: {
-                          marginTop: "120px",
-                        },
-                      })
-                      track("pixel-claim-error", {
-                        signer: await signer?.getAddress(),
-                        pixels: xs.length,
-                        error: e,
-                      })
-                      return
-                    }
-                    confirmClaimPixels()
-                  }}
+                  onClick={async () => await handle_paint_pixels()}
                 >
                   Claim Pixels
-                </Web3Button>
+                </Button>
               </Stack>
             </Stack>
           </HStack>
@@ -568,10 +584,7 @@ export default function GridControls({
               <Editable value={inputColor}>
                 <EditablePreview />
                 <EditableInput
-                  onChange={
-                    (e) => setInputColor(e.target.value)
-                    // setInputcolor(getColorOrDefault(e.target.value))
-                  }
+                  onChange={(e) => setInputColor(e.target.value)}
                 />
               </Editable>
             </HStack>

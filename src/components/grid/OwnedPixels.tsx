@@ -1,7 +1,6 @@
 import { Heading, HStack, Spinner, Stack, Text } from "@chakra-ui/react"
-import { useSigner } from "@thirdweb-dev/react"
-import { useEffect, useState } from "react"
-import { useGetOwnedPixels } from "../../utils/Subgraph"
+import { useState } from "react"
+import { useGetOwnedPixels } from "../../utils/Canvas"
 import { getTextForColor } from "../../utils/utils"
 import { Pixel } from "./Grid"
 
@@ -17,19 +16,19 @@ export default function OwnedPixels({
   const [ownedPixels, setOwnedPixels] = useState<Pixel[]>([])
   const [fetched, setFetched] = useState(false)
   const { getOwnedPixels, loading } = useGetOwnedPixels()
-  const signer = useSigner()
 
-  useEffect(() => {
-    let handler = async () => {
-      if (!signer || !getOwnedPixels) return
-      setFetched(true)
-      let pixels = await getOwnedPixels(
-        (await signer.getAddress()).toLowerCase(),
-      )
-      setOwnedPixels(pixels)
-    }
-    if (!fetched) handler()
-  }, [signer, getOwnedPixels])
+  // TODO:
+  // useEffect(() => {
+  //   let handler = async () => {
+  //     if (!signer || !getOwnedPixels) return
+  //     setFetched(true)
+  //     let pixels = await getOwnedPixels(
+  //       (await signer.getAddress()).toLowerCase(),
+  //     )
+  //     setOwnedPixels(pixels)
+  //   }
+  //   if (!fetched) handler()
+  // }, [signer, getOwnedPixels])
 
   return (
     <Stack pos="absolute" top="-150px" display={isOpen ? "" : "none"}>

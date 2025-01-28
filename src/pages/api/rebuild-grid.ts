@@ -1,4 +1,4 @@
-import { getAllPixelsAfter } from "@/utils/Subgraph"
+import { getAllPixelsAfter } from "@/utils/Canvas"
 import { del, list, put } from "@vercel/blob"
 import Color from "color"
 import { createReadStream, createWriteStream, unlink } from "fs"
@@ -34,8 +34,8 @@ export default async function handler(
   let pixels = await getAllPixelsAfter(client, 0)
 
   var png = new PNG({
-    width: 1000,
-    height: 1000,
+    width: 90,
+    height: 90,
   })
 
   let timestamp = 0

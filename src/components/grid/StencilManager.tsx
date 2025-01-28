@@ -15,7 +15,6 @@ import {
   Progress,
   Stack,
 } from "@chakra-ui/react"
-import { useStorageUpload } from "@thirdweb-dev/react"
 import { Field, Form, Formik } from "formik"
 import { useRouter } from "next/router"
 import { useEffect, useState } from "react"
@@ -52,15 +51,15 @@ export default function StencilManager({
   const [callerStencils, setCallerStencils] = useState([])
   const [storageStencils, saveStorageStencils] = useLocalStorage("stencils", [])
 
-  const { mutateAsync: upload } = useStorageUpload({
-    onProgress: ({ progress, total }) => {
-      progress === total
-        ? setProgress(0)
-        : setProgress((progress / total) * 100)
-    },
-    uploadWithoutDirectory: false,
-    uploadWithGatewayUrl: true,
-  })
+  // const { mutateAsync: upload } = useStorageUpload({
+  //   onProgress: ({ progress, total }) => {
+  //     progress === total
+  //       ? setProgress(0)
+  //       : setProgress((progress / total) * 100)
+  //   },
+  //   uploadWithoutDirectory: false,
+  //   uploadWithGatewayUrl: true,
+  // })
 
   const uploadStencil = async (
     file: File,
@@ -78,13 +77,13 @@ export default function StencilManager({
         type: file.type,
       })
 
-      let ipfsUpload = (await upload({ data: [newFile] }))[0].replace(
-        "https://",
-        "",
-      )
-      saveStorageStencils([...storageStencils, ipfsUpload])
-      setCallerStencils([...storageStencils, ipfsUpload])
-      selectStencil(ipfsUpload)
+      // let ipfsUpload = (await upload({ data: [newFile] }))[0].replace(
+      //   "https://",
+      //   "",
+      // )
+      // saveStorageStencils([...storageStencils, ipfsUpload])
+      // setCallerStencils([...storageStencils, ipfsUpload])
+      // selectStencil(ipfsUpload)
     } catch (e) {
       console.log(e)
     }
@@ -279,7 +278,7 @@ export default function StencilManager({
       closeOnOverlayClick={false}
     >
       <DrawerContent containerProps={{ width: "0" }} overflow="scroll">
-        <DrawerBody bgColor="#FF4500" mt="5.5em" p="1em" pt="0 !important">
+        <DrawerBody bgColor="#4ca3ff" mt="5.5em" p="1em" pt="0 !important">
           <DrawerCloseButton mt="90px" mr="1em" />
           <Stack
             w="100%"
@@ -324,7 +323,7 @@ export default function StencilManager({
                     fontFamily="minecraft"
                     letterSpacing="1px"
                     fontSize="18px"
-                    backgroundColor="#FF4500"
+                    backgroundColor="#4ca3ff"
                     color="#fff"
                     _hover={{ backgroundColor: "#c53500" }}
                     onClick={handleAddingStencil}
@@ -356,7 +355,7 @@ export default function StencilManager({
                         letterSpacing="1px"
                         fontSize="18px"
                         variant={"outline"}
-                        borderColor="#FF4500"
+                        borderColor="#4ca3ff"
                         onClick={() => {
                           if (stencilCanvas)
                             stencilCanvas.clearRect(
@@ -508,7 +507,7 @@ export default function StencilManager({
                             fontFamily="minecraft"
                             letterSpacing="1px"
                             fontSize="18px"
-                            backgroundColor="#FF4500"
+                            backgroundColor="#4ca3ff"
                             color="#fff"
                             _hover={{ backgroundColor: "#c53500" }}
                             type="submit"
@@ -526,8 +525,8 @@ export default function StencilManager({
                             fontFamily="minecraft"
                             letterSpacing="1px"
                             fontSize="18px"
-                            color="#FF4500"
-                            borderColor={"#FF4500"}
+                            color="#4ca3ff"
+                            borderColor={"#4ca3ff"}
                             _hover={{ backgroundColor: "#ebebeb" }}
                             onClick={() => {
                               if (stencilCanvas)

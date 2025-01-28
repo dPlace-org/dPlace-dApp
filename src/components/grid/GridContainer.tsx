@@ -4,15 +4,12 @@ import {
   useDisclosure,
   useToast,
 } from "@chakra-ui/react"
-import { useContract, useContractEvents, useSigner } from "@thirdweb-dev/react"
 
-import { ethers } from "ethers"
-import { useRouter } from "next/router"
 import { useEffect, useRef, useState } from "react"
 import { useInterval, useLocalStorage } from "react-use"
 import { ReactZoomPanPinchRef } from "react-zoom-pan-pinch"
-import { DPlaceGrid__factory } from "types"
-import { useGetPixels } from "../../utils/Subgraph"
+
+import { useGetPixels } from "@/utils/Canvas"
 import Grid, { Pixel } from "./Grid"
 import GridControls from "./GridControls"
 import StencilManager from "./StencilManager"
@@ -21,13 +18,11 @@ export default function GridContainer() {
   let gridAddress = process.env.NEXT_PUBLIC_GRID_ADDRESS
   const maxPixels = 200
   const pixelSize = 2
-  const gridSize = 2000
-  const [block, setBlock] = useState<number>(0)
-  const [selectedColor, setSelectedColor] = useState("#FF4500")
+  const gridSize = 180
+  const [selectedColor, setSelectedColor] = useState("#4ca3ff")
   const [tool, setTool] = useState("move")
-  const [currentBlock, setCurrentBlock] = useState<number>(block)
   const isMobile = useBreakpointValue({ base: true, md: false })
-  const signer = useSigner()
+
   const [newPixels, setNewPixels] = useState<Pixel[]>([])
   const [selectedPixel, setSelectedPixel] = useState<Pixel>()
   const [panningDisabled, setPanningDisabled] = useState(false)
@@ -40,7 +35,14 @@ export default function GridContainer() {
   const [updatedPixels, setUpdatedPixels] = useState<Pixel[]>([])
   const [currentStencil, setCurrentStencil] = useState(null)
   const toast = useToast()
-  const { getPixels, loading: subgraphPixelsLoading } = useGetPixels()
+
+  const {
+    getPixelsUpdatedAfter,
+    isPending,
+    loading: subgraphPixelsLoading,
+  } = useGetPixels()
+  const loading = subgraphPixelsLoading || _loading
+
   const transformComponentRef = useRef<ReactZoomPanPinchRef | null>(null)
   const updateCanvasRef = useRef<HTMLCanvasElement>(null)
   const drawingCanvasRef = useRef<HTMLCanvasElement>(null)
@@ -51,23 +53,16 @@ export default function GridContainer() {
     useState<CanvasRenderingContext2D | null>(null)
   const [updateCanvas, setUpdateCanvas] =
     useState<CanvasRenderingContext2D | null>(null)
-  const router = useRouter()
-  const { contract } = useContract(gridAddress, DPlaceGrid__factory.abi)
 
-  const { data: chainEventPixels } = useContractEvents(
-    contract,
-    "PixelChanged",
-    {
-      queryFilter: {
-        order: "desc",
-        fromBlock: currentBlock,
-        toBlock: currentBlock + 100000,
-      },
-      subscribe: true,
-    },
-  )
+  // subscribe to new paint pixel events
+  let [livePixelEvents, setLivePixelEvents] = useState<Pixel[] | null>(null)
+  useInterval(async () => {
+    // TODO: this is meant to query from most recently cached timestamp
+    let timestamp = 0
+    let pixels = await getPixelsUpdatedAfter(timestamp)
+    setLivePixelEvents(pixels)
+  }, 10000)
 
-  const loading = subgraphPixelsLoading || _loading
   let hasStencil = currentStencil != undefined
 
   const {
@@ -80,14 +75,16 @@ export default function GridContainer() {
     setShouldUpdate(true)
   }, 1000000)
 
+  // fetch cached grid image
   useEffect(() => {
     const handler = async () => {
       try {
         setLoading(true)
-        let response = await fetch("/api/retrieve-grid")
-        let url = await response.json()
-        if (!url.message) setCachedGridUrl("/assets/images/grid-0.png")
-        setCachedGridUrl(url.message)
+        // let response = await fetch("/api/retrieve-grid")
+        // let url = await response.json()
+        // if (!url.message) setCachedGridUrl("/assets/images/grid-0.png")
+        setCachedGridUrl("/assets/images/grid-0.png")
+        // setCachedGridUrl(url.message)
         setLoading(false)
       } catch (e) {
         console.log(e)
@@ -110,13 +107,6 @@ export default function GridContainer() {
       setStencilCanvas(stencilCanvasRef.current.getContext("2d"))
     }
   }, [drawingCanvasRef, updateCanvasRef, stencilCanvasRef])
-
-  useEffect(() => {
-    if (signer && signer.provider) {
-      let provider = signer.provider
-      provider.getBlockNumber().then((block) => setBlock(block))
-    }
-  }, [signer])
 
   useEffect(() => {
     if (tool !== "select") {
@@ -148,7 +138,7 @@ export default function GridContainer() {
     }
   }, [saveStoragePixels, drawingCanvas])
 
-  // draw pixels from subgraph
+  // draw cached image on canvas
   useEffect(() => {
     if (!cachedGridUrl) return
     var gridImage = new Image()
@@ -158,41 +148,40 @@ export default function GridContainer() {
         centerCanvasOnPixel(storagePixels[0], 4)
         setTool("paint")
       } else if (!currentStencil) {
-        centerCanvasOnPixel({ x: 500, y: 500 }, 1)
+        centerCanvasOnPixel({ x: 45, y: 45 }, 4)
       }
       updateCanvas.imageSmoothingEnabled = false
       updateCanvas.drawImage(gridImage, 0, 0, gridSize, gridSize)
-      await updateCanvasFromSubgraph()
+      await updateUncachedPixels()
     }
-  }, [cachedGridUrl, updateCanvas])
+  }, [cachedGridUrl, updateCanvas, isPending])
 
   useEffect(() => {
     let handler = async () => {
-      await updateCanvasFromSubgraph()
+      await updateUncachedPixels()
       setShouldUpdate(false)
     }
     if (shouldUpdate) handler()
   }, [shouldUpdate])
 
-  // draw pixels from chain events
+  // draw pixels from live chain events
   useEffect(() => {
-    if (chainEventPixels) {
-      for (let i = 0; i < chainEventPixels.length; i++) {
-        let x = Number(chainEventPixels[i].data.x)
-        let y = Number(chainEventPixels[i].data.y)
-        let color = ethers.utils.parseBytes32String(
-          chainEventPixels[i].data.data,
-        )
+    if (livePixelEvents) {
+      for (let i = 0; i < livePixelEvents.length; i++) {
+        let x
+        let y
+        let color
         setTimeout(() => addNewPixel({ x, y, color }), 1)
       }
     }
-  }, [chainEventPixels])
+  }, [livePixelEvents])
 
-  let updateCanvasFromSubgraph = async () => {
+  // get pixels that have yet to be cached by indexer
+  let updateUncachedPixels = async () => {
     if (updateCanvas) {
       // Catch up grid from subgraph
       let timestamp = getTimestampFromUrl(cachedGridUrl)
-      let pixels = await getPixels(timestamp)
+      let pixels = await getPixelsUpdatedAfter(timestamp)
       setNewPixels(pixels)
       for (let i = 0; i < pixels.length; i++) {
         setTimeout(() => addNewPixel(pixels[i]), 1)

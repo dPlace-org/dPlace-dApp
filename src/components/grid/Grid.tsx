@@ -10,7 +10,6 @@ import {
 } from "@chakra-ui/react"
 import { MutableRefObject, useEffect, useRef, useState } from "react"
 
-import { useSigner } from "@thirdweb-dev/react"
 import {
   getMatrixTransformStyles,
   ReactZoomPanPinchRef,
@@ -70,7 +69,6 @@ export default function Grid({
   const highlightCanvasRef = useRef<HTMLCanvasElement>(null)
   const [initialized, setInitialized] = useState(false)
   const [highlightedPixel, setHighlightedPixel] = useState<Pixel>()
-  const signer = useSigner()
   const [drawingPixels, setDrawingPixels] = useState(false)
   const [updateCanvas, setUpdateCanvas] =
     useState<CanvasRenderingContext2D | null>(null)
@@ -96,7 +94,7 @@ export default function Grid({
   useEffect(() => {
     if (initialized) {
       if (!hasStencil) {
-        centerCanvasOnPixel({ x: 500, y: 500 }, 1)
+        centerCanvasOnPixel({ x: 45, y: 45 }, 5)
       }
     }
   }, [initialized])
@@ -260,7 +258,7 @@ export default function Grid({
             setTool("move")
           }}
         >
-          <TransformComponent wrapperStyle={{ width: "100%" }}>
+          <TransformComponent wrapperStyle={{ width: "100%", height: "100vh" }}>
             <canvas
               ref={updateCanvasRef}
               width={gridSize}

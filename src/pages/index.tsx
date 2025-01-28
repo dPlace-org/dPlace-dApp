@@ -5,8 +5,8 @@ import GridContainer from "../components/grid/GridContainer"
 const IndexPage = () => {
   return (
     <PageLayout
-      title="dPlace - community owned pixels"
-      description="Join the dPlace community and leave your mark on the grid"
+      title="SuiPlace - community owned pixels"
+      description="Join the SuiPlace community and leave your mark on the grid"
     >
       <Stack spacing={4} w="100%" overflowY={"unset"}>
         <GridContainer />

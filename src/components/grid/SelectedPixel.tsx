@@ -1,4 +1,4 @@
-import { useGetPixel } from "@/utils/Subgraph"
+import { useGetPixel } from "@/utils/Canvas"
 import { trimAddress } from "@/utils/utils"
 import {
   Button,
@@ -10,12 +10,9 @@ import {
   Text,
   Tooltip,
 } from "@chakra-ui/react"
-import { useContract, useSigner } from "@thirdweb-dev/react"
-import { ethers } from "ethers"
+
 import { useEffect, useState } from "react"
 import Countdown from "react-countdown"
-import { DPlaceGrid__factory } from "types"
-import { useCalculatePriceUSD } from "../../utils/Price"
 import { getTextForColor } from "../../utils/utils"
 import Identicon from "../identicon"
 import { Pixel } from "./Grid"
@@ -34,10 +31,8 @@ export default function SelectedPixel({
   const [_loading, setLoading] = useState<boolean>(false)
   const [halvingTime, setHalvingTime] = useState<number>(0)
   const { getPixel, initialized, loading: pixelLoading } = useGetPixel()
-  const { usdPrice } = useCalculatePriceUSD({ ethAmount: price })
-  const { contract } = useContract(gridAddress, DPlaceGrid__factory.abi)
-
-  const signer = useSigner()
+  // const { usdPrice } = useCalculatePriceUSD({ ethAmount: price })
+  const usdPrice = 0
 
   const loading = pixelLoading || _loading
 
@@ -46,15 +41,13 @@ export default function SelectedPixel({
       let _pixel = await getPixel(pixel.x, pixel.y)
       if (_pixel) {
         setLoading(true)
-        let _price = await contract.call("calculatePixelPrice", [
-          pixel.x,
-          pixel.y,
-        ])
-        setPrice(ethers.utils.formatEther(_price))
+        // TODO: get price of pixel
+        let _price // = _pixel.price
+        setPrice(_price)
         setOwner(_pixel.owner)
         setColor(_pixel.color)
         setSelectedColor(_pixel.color)
-        setHalvingTime(calculateNextHalving(_pixel))
+        setHalvingTime(calculateNextReset(_pixel))
         setLoading(false)
         return
       }
@@ -66,7 +59,8 @@ export default function SelectedPixel({
     if (pixel && initialized) handler()
   }, [pixel, initialized])
 
-  const calculateNextHalving = (pixel: Pixel) => {
+  // TODO: calculate next reset time
+  const calculateNextReset = (pixel: Pixel) => {
     let halvingsPassed =
       (Date.now() - Number(pixel.lastUpdated) * 1000) / 1000 / 60 / 60 / 4
     let wholeHalvingsPassed = Math.floor(halvingsPassed)
@@ -132,10 +126,10 @@ export default function SelectedPixel({
                       overflow="hidden"
                       textOverflow={"ellipsis"}
                       size="lg"
-                      color="#FF4500"
+                      color="#4ca3ff"
                       whiteSpace={"nowrap"}
                     >
-                      Ξ{price}
+                      💧{price}
                     </Heading>
                   </Tooltip>
                   <Text
@@ -155,10 +149,11 @@ export default function SelectedPixel({
                     color="gray"
                     fontFamily={"minecraft"}
                   >
-                    HALVING
+                    RESET
                   </Text>
                   {halvingTime && (
                     <Countdown
+                      // TODO: figure this out
                       onComplete={() => setHalvingTime(halvingTime + 14400000)} // reset clock
                       date={halvingTime}
                     />

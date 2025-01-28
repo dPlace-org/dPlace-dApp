@@ -7,5 +7,5 @@
   "singleQuote": false,
   "trailingComma": "all",
   "bracketSpacing": true,
-  "arrowParens": "always"
+  "arrowParents": "always"
 }

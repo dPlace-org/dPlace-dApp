@@ -1,4 +1,4 @@
-import { getAllPixelsAfter } from "@/utils/Subgraph"
+import { getAllPixelsAfter } from "@/utils/Canvas"
 import { del, list, put } from "@vercel/blob"
 import Color from "color"
 import { createReadStream, createWriteStream, unlink } from "fs"
