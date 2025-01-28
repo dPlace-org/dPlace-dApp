@@ -244,6 +244,7 @@ export const useGetPixels = (): {
         let pixels = {}
 
         setLoading(true)
+        await fetchNextPage()
         let _pixels = convertEventsToPixels(data?.pages[0].data)
         _pixels?.map((_pixel) => {
           pixels[`${_pixel.x},${_pixel.y}`] = _pixel.color

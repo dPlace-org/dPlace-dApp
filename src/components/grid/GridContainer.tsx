@@ -55,13 +55,13 @@ export default function GridContainer() {
     useState<CanvasRenderingContext2D | null>(null)
 
   // subscribe to new paint pixel events
-  let [livePixelEvents, setLivePixelEvents] = useState<Pixel[] | null>(null)
-  useInterval(async () => {
-    // TODO: this is meant to query from most recently cached timestamp
-    let timestamp = 0
-    let pixels = await getPixelsUpdatedAfter(timestamp)
-    setLivePixelEvents(pixels)
-  }, 10000)
+  // let [livePixelEvents, setLivePixelEvents] = useState<Pixel[] | null>(null)
+  // useInterval(async () => {
+  //   // TODO: this is meant to query from most recently cached timestamp
+  //   let timestamp = 0
+  //   let pixels = await getPixelsUpdatedAfter(timestamp)
+  //   setLivePixelEvents(pixels)
+  // }, 10000)
 
   let hasStencil = currentStencil != undefined
 
@@ -73,7 +73,7 @@ export default function GridContainer() {
 
   useInterval(() => {
     setShouldUpdate(true)
-  }, 1000000)
+  }, 5000)
 
   // fetch cached grid image
   useEffect(() => {
@@ -165,16 +165,16 @@ export default function GridContainer() {
   }, [shouldUpdate])
 
   // draw pixels from live chain events
-  useEffect(() => {
-    if (livePixelEvents) {
-      for (let i = 0; i < livePixelEvents.length; i++) {
-        let x
-        let y
-        let color
-        setTimeout(() => addNewPixel({ x, y, color }), 1)
-      }
-    }
-  }, [livePixelEvents])
+  // useEffect(() => {
+  //   if (livePixelEvents) {
+  //     for (let i = 0; i < livePixelEvents.length; i++) {
+  //       let x
+  //       let y
+  //       let color
+  //       setTimeout(() => addNewPixel({ x, y, color }), 1)
+  //     }
+  //   }
+  // }, [livePixelEvents])
 
   // get pixels that have yet to be cached by indexer
   let updateUncachedPixels = async () => {
