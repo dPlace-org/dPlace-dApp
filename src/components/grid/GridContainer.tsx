@@ -36,12 +36,8 @@ export default function GridContainer() {
   const [currentStencil, setCurrentStencil] = useState(null)
   const toast = useToast()
 
-  const {
-    getPixelsUpdatedAfter,
-    isPending,
-    loading: subgraphPixelsLoading,
-  } = useGetPixels()
-  const loading = subgraphPixelsLoading || _loading
+  const { getPixelsFromGraphql, loading: subgraphPixelsLoading } =
+    useGetPixels()
 
   const transformComponentRef = useRef<ReactZoomPanPinchRef | null>(null)
   const updateCanvasRef = useRef<HTMLCanvasElement>(null)
@@ -154,7 +150,7 @@ export default function GridContainer() {
       updateCanvas.drawImage(gridImage, 0, 0, gridSize, gridSize)
       await updateUncachedPixels()
     }
-  }, [cachedGridUrl, updateCanvas, isPending])
+  }, [cachedGridUrl, updateCanvas])
 
   useEffect(() => {
     let handler = async () => {
@@ -181,7 +177,7 @@ export default function GridContainer() {
     if (updateCanvas) {
       // Catch up grid from subgraph
       let timestamp = getTimestampFromUrl(cachedGridUrl)
-      let pixels = await getPixelsUpdatedAfter(timestamp)
+      let pixels = await getPixelsFromGraphql()
       setNewPixels(pixels)
       for (let i = 0; i < pixels.length; i++) {
         setTimeout(() => addNewPixel(pixels[i]), 1)
@@ -304,7 +300,7 @@ export default function GridContainer() {
         updatedPixels={updatedPixels}
         maxPixels={maxPixels}
         gridSize={gridSize}
-        loading={loading}
+        loading={_loading}
         setTool={setTool}
         hideStencil={hideStencil}
         selectedColor={selectedColor}
@@ -324,7 +320,7 @@ export default function GridContainer() {
         showingStencil={!hideStencil}
         showColorPicker={showColorPicker}
         selectedColor={selectedColor}
-        loading={loading}
+        loading={_loading}
         centerCanvasOnPixel={centerCanvasOnPixel}
         setSelectedColor={setSelectedColor}
         clearDrawnPixels={clearDrawnPixels}

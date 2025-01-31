@@ -1,4 +1,4 @@
-import { HStack, Icon, IconButton, useDisclosure } from "@chakra-ui/react"
+import { HStack, Icon, IconButton, Text, useDisclosure } from "@chakra-ui/react"
 import { ConnectButton } from "@mysten/dapp-kit"
 import { FaQuestion } from "react-icons/fa"
 import { FAQ } from "./FAQ"
@@ -24,6 +24,15 @@ const Header = () => {
       maxW="100vw"
     >
       <HStack>
+        <Text
+          textAlign={"center"}
+          color="white"
+          fontFamily={"minecraft"}
+          fontSize="4xl"
+          pt="8px"
+        >
+          SuiPlace
+        </Text>
         {/* <Image src="/assets/images/icon.svg" alt="icon" w="3.5em" />
         <Image src="/assets/images/logo.svg" alt="icon" w="12em" /> */}
       </HStack>

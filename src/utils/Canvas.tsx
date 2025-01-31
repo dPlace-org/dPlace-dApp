@@ -1,8 +1,7 @@
-import { useSuiClientInfiniteQuery } from "@mysten/dapp-kit"
-// import { bcs } from "@mysten/sui/dist/cjs/bcs"
-// import { bcs } from "@mysten/sui/cryptography"
 import { bcs } from "@mysten/sui/bcs"
 import { SuiClient } from "@mysten/sui/dist/cjs/client"
+import { SuiGraphQLClient } from "@mysten/sui/graphql"
+import { graphql } from "@mysten/sui/graphql/schemas/latest"
 import { Transaction } from "@mysten/sui/transactions"
 import { useEffect, useState } from "react"
 import { cacheExchange, Client, createClient, fetchExchange } from "urql"
@@ -213,85 +212,126 @@ export const useGetOwnedPixels = (): {
   return { getOwnedPixels: client ? queryPixels : null, loading, error }
 }
 
-// TODO:
 export const useGetPixels = (): {
-  getPixelsUpdatedAfter: (timestamp: Number) => Promise<Pixel[]>
+  getPixelsFromGraphql: () => Promise<Pixel[]>
   loading: boolean
   error: string
-  isPending: boolean
 } => {
   // const [client, setClient] = useState<Client | null>(null)
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
 
-  const {
-    data,
-    isPending,
-    isError,
-    error: queryError,
-    isFetching,
-    fetchNextPage,
-    hasNextPage,
-  } = useSuiClientInfiniteQuery("queryEvents", {
-    query: {
-      MoveEventType: `${process.env.NEXT_PUBLIC_PACKAGE_ID}::meta_canvas::PixelsPaintedEvent`,
-    },
+  const gqlClient = new SuiGraphQLClient({
+    url: "https://sui-testnet.mystenlabs.com/graphql",
   })
 
-  const queryPixels = async (timestamp: number): Promise<Pixel[]> => {
-    if (!isPending) {
-      try {
-        let pixels = {}
-
-        setLoading(true)
-        await fetchNextPage()
-        let _pixels = convertEventsToPixels(data?.pages[0].data)
-        _pixels?.map((_pixel) => {
-          pixels[`${_pixel.x},${_pixel.y}`] = _pixel.color
-        })
-
-        while (hasNextPage) {
-          let request = await fetchNextPage()
-          let _pixels = convertEventsToPixels(request.data.pages[0].data)
-
-          _pixels?.map((_pixel) => {
-            pixels[`${_pixel.x},${_pixel.y}`] = _pixel.color
-          })
+  const getCanvasesID = graphql(`
+    query getTableObjectID($address: String!) {
+      object(address: $address) {
+        asMoveObject {
+          contents {
+            json
+          }
         }
-
-        setLoading(false)
-        return Array.from(Object.entries(pixels), ([key, value]) => {
-          return {
-            x: Number(key.split(",")[0]),
-            y: Number(key.split(",")[1]),
-            color: value as String,
-          } as Pixel
-        })
-      } catch (err) {
-        console.log(err)
-        setLoading(false)
-        setError(err)
       }
     }
-    return []
+  `)
+
+  const getCanvases = graphql(`
+    query getCanvasesFromTable($address: String!) {
+      owner(address: $address) {
+        dynamicFields {
+          nodes {
+            name {
+              ...Value
+            }
+            value {
+              __typename
+              ... on MoveValue {
+                ...Value
+              }
+              ... on MoveObject {
+                contents {
+                  ...Value
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    fragment Value on MoveValue {
+      type {
+        repr
+      }
+      json
+    }
+  `)
+
+  const queryPixels = async (): Promise<Pixel[]> => {
+    setLoading(true)
+    const getCanvasIDRes = await gqlClient.query({
+      query: getCanvasesID,
+      variables: { address: process.env.NEXT_PUBLIC_META_CANVAS_ID },
+    })
+
+    let canvasTableId = (
+      getCanvasIDRes.data.object.asMoveObject.contents.json as any
+    ).canvases.id
+
+    let canvasesRes = await gqlClient.query({
+      query: getCanvases,
+      variables: { address: canvasTableId },
+    })
+
+    let canvases = canvasesRes.data.owner.dynamicFields.nodes
+
+    let pixels = convertCanvasesToPixels(canvases)
+
+    setLoading(false)
+    return pixels
   }
 
-  return { getPixelsUpdatedAfter: queryPixels, isPending, loading, error }
+  return { getPixelsFromGraphql: queryPixels, loading, error }
 }
 
-const convertEventsToPixels = (events: any[]): Pixel[] => {
+// const convertEventsToPixels = (events: any[]): Pixel[] => {
+//   let pixels = []
+//   events.map((event) => {
+//     let json = event.parsedJson as any
+//     return json.color.map((color, index) => {
+//       let pixel: Pixel = {
+//         x: Number(json.pixels_x[index]),
+//         y: Number(json.pixels_y[index]),
+//         color,
+//       }
+//       pixels.push(pixel)
+//     })
+//   })
+//   return pixels
+// }
+
+const convertCanvasesToPixels = (canvases: any[]): Pixel[] => {
   let pixels = []
-  events.map((event) => {
-    let json = event.parsedJson as any
-    return json.color.map((color, index) => {
-      let pixel: Pixel = {
-        x: Number(json.pixels_x[index]),
-        y: Number(json.pixels_y[index]),
-        color,
-      }
-      pixels.push(pixel)
+
+  canvases.map((canvas) => {
+    let json = canvas.value.contents.json as any
+    let canvas_x = Number(canvas.name.json.pos0)
+    let canvas_y = Number(canvas.name.json.pos1)
+    return json.pixels.map((row) => {
+      return row.map((pixel: any) => {
+        if (pixel.color == "") return
+        // console.log(pixel)
+        let p: Pixel = {
+          x: Number(pixel.coordinates.pos0) + canvas_x * 45,
+          y: Number(pixel.coordinates.pos1) + canvas_y * 45,
+          color: pixel.color,
+        }
+        pixels.push(p)
+      })
     })
   })
+
   return pixels
 }
 
